@@ -1,0 +1,27 @@
+{
+  "name": "Via Classica — 2026–2029",
+  "short_name": "Via Classica",
+  "description": "Личный учебный кабинет: олимпиады, английский, планы и поступление.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f0e5",
+  "theme_color": "#667044",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

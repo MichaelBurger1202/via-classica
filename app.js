@@ -37,6 +37,31 @@ $('#addLinkBtn').addEventListener('click',openModal);$('#closeModal').addEventLi
 $('#linkForm').addEventListener('submit',e=>{e.preventDefault();const id=modal.dataset.edit;if(id){const l=state.links.find(x=>x.id===id);if(l){l.name=$('#linkName').value.trim();l.url=$('#linkUrl').value.trim();l.cat=$('#linkCategory').value;l.fav=$('#linkFav').checked}}else state.links.push({id:Date.now().toString(),name:$('#linkName').value.trim(),url:$('#linkUrl').value.trim(),cat:$('#linkCategory').value,fav:$('#linkFav').checked});save();renderLinks();closeModal()});
 seedLinks();renderTasks();renderLinks();bindChecks();updateProgress();
 
-// v8 startup: every fresh page load starts on the Home screen.
-// This is intentionally the final boot action so other modules cannot leave a stale active page.
+// v9 startup: every fresh page load starts on Home. Other modules must not navigate during boot.
 show('home');
+
+// PWA installation support. The button appears only when the browser offers installation.
+let deferredInstallPrompt = null;
+const installBtn = $('#installAppBtn');
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installBtn) installBtn.hidden = false;
+});
+if (installBtn) installBtn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installBtn.hidden = true;
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  if (installBtn) installBtn.hidden = true;
+});
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=9').catch(() => {});
+  });
+}
