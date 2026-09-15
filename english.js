@@ -229,6 +229,9 @@
       if(a==='profile')showEnglishProfile();
       if(a==='dict')showEnglishDictionary();
     }));
-    render();
+    // Rendering the English module must not change the current page.
+    // Navigation happens only through an explicit English action.
+    const englishPage=document.querySelector('#english');
+    if(englishPage && englishPage.classList.contains('active')) render();
   });
 })();

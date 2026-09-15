@@ -36,3 +36,7 @@ function openModal(link=null){modal.classList.add('open');modal.setAttribute('ar
 $('#addLinkBtn').addEventListener('click',openModal);$('#closeModal').addEventListener('click',closeModal);$('#cancelLink').addEventListener('click',closeModal);modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});
 $('#linkForm').addEventListener('submit',e=>{e.preventDefault();const id=modal.dataset.edit;if(id){const l=state.links.find(x=>x.id===id);if(l){l.name=$('#linkName').value.trim();l.url=$('#linkUrl').value.trim();l.cat=$('#linkCategory').value;l.fav=$('#linkFav').checked}}else state.links.push({id:Date.now().toString(),name:$('#linkName').value.trim(),url:$('#linkUrl').value.trim(),cat:$('#linkCategory').value,fav:$('#linkFav').checked});save();renderLinks();closeModal()});
 seedLinks();renderTasks();renderLinks();bindChecks();updateProgress();
+
+// v8 startup: every fresh page load starts on the Home screen.
+// This is intentionally the final boot action so other modules cannot leave a stale active page.
+show('home');
