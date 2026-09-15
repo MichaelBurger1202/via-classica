@@ -18,8 +18,53 @@
   let st=JSON.parse(localStorage.getItem(KEY)||'null')||{history:[],session:null,dict:[],profile:{cefr:null,mastered:[],active:[]}};
   let current=null, mode='ai', manual=null;
   function save(){localStorage.setItem(KEY,JSON.stringify(st))}
-  function nav(page){if(window.showViaPage)window.showViaPage(page);else document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));}
-
+  const DICT = {
+    'if':{ru:'если',en:'used to introduce a condition'},'enough':{ru:'достаточно',en:'as much or as many as needed'},'time':{ru:'время',en:'a period during which something happens'},'tomorrow':{ru:'завтра',en:'the day after today'},'join':{ru:'присоединиться; участвовать',en:'to become a member of a group or take part in an activity'},'library':{ru:'библиотека',en:'a place where books and other resources are available for study'},'tour':{ru:'экскурсия',en:'a journey around a place to see and learn about it'},
+    'have':{ru:'иметь; располагать',en:'to possess, own, or experience something'},'would':{ru:'бы; вспомогательный глагол',en:'a modal verb used in several conditional and polite constructions'},'check':{ru:'проверять',en:'to examine something to make sure it is correct or satisfactory'},'email':{ru:'электронное письмо',en:'a message sent electronically'},'before':{ru:'до; перед',en:'earlier than a particular time or event'},'sending':{ru:'отправка; отправлением',en:'the act of causing something to be sent'},
+    'evidence':{ru:'доказательства; подтверждающие сведения',en:'facts or information showing that something is true'},'argument':{ru:'аргумент; довод',en:'a reason or set of reasons supporting an idea'},'article':{ru:'статья',en:'a piece of writing published in a newspaper, journal, or other publication'},'provide':{ru:'предоставлять',en:'to give or make something available'},'strong':{ru:'убедительный; сильный',en:'having a powerful effect or providing strong support'},'seminar':{ru:'семинар',en:'a class or meeting for discussion and study'},'examine':{ru:'исследовать; подробно рассматривать',en:'to look at or study something carefully'},
+    'relationship':{ru:'связь; взаимоотношение',en:'the way in which two or more things are connected'},'myth':{ru:'миф',en:'a traditional story, often involving gods or heroes'},'ritual':{ru:'ритуал; обряд',en:'a set of actions performed regularly, especially as part of a tradition'},'museum':{ru:'музей',en:'a place where objects of artistic, cultural, or historical interest are displayed'},'museums':{ru:'музеи',en:'plural of museum'},'increasingly':{ru:'всё чаще; в возрастающей степени',en:'more and more as time passes'},'digital':{ru:'цифровой',en:'relating to information represented electronically'},'catalogues':{ru:'каталоги',en:'organized lists or collections of items'},'preserve':{ru:'сохранять',en:'to keep something in its original or existing condition'},
+    'records':{ru:'записи; сведения',en:'stored information about something'},'accessible':{ru:'доступный',en:'easy to reach, use, or obtain'},'researchers':{ru:'исследователи',en:'people who carry out systematic investigation'},'abroad':{ru:'за рубежом',en:'in or to a foreign country'},'main':{ru:'основной',en:'most important or central'},'point':{ru:'смысл; основная мысль',en:'the main idea or purpose of something'},'collections':{ru:'коллекции',en:'groups of objects collected and kept together'},'formal':{ru:'официальный; формальный',en:'following established conventions rather than being informal'},
+    'request':{ru:'запрос; просьба',en:'an act of asking for something'},'appropriate':{ru:'уместный; подходящий',en:'suitable or correct for a particular situation'},'opening':{ru:'начало; вступительная фраза',en:'the first part of something, such as a letter'},'university':{ru:'университет',en:'an institution of higher education'},'office':{ru:'отдел; учреждение',en:'a department or place where administrative work is done'},'station':{ru:'станция; вокзал',en:'a place where trains or other public transport stop'},'announcement':{ru:'объявление',en:'a public or formal statement giving information'},'announcements':{ru:'объявления',en:'plural of announcement'},
+    'train':{ru:'поезд',en:'a series of connected railway vehicles'},'delayed':{ru:'задержанный; задерживается',en:'made to happen later than planned'},'passengers':{ru:'пассажиры',en:'people travelling in a vehicle or on public transport'},'wait':{ru:'ждать',en:'to stay where you are until something happens'},'further':{ru:'дальнейший',en:'additional or more distant'},'platform':{ru:'платформа',en:'the raised area beside railway tracks where passengers board trains'},'information':{ru:'информация',en:'facts or details about something'},'primary':{ru:'первичный; первоисточниковый',en:'original or first-hand rather than derived from another source'},
+    'sources':{ru:'источники',en:'places, documents, or people from which information comes'},'useful':{ru:'полезный',en:'helpful or practical'},'historical':{ru:'исторический',en:'relating to history or past events'},'research':{ru:'исследование',en:'careful study undertaken to discover or establish facts'},'direct':{ru:'прямой; непосредственный',en:'not indirect; coming from the original source'},'period':{ru:'период',en:'a length or section of time'},'studied':{ru:'изучаемый; изученный',en:'examined or learned about carefully'},
+    'translate':{ru:'переводить',en:'to express the meaning of words in another language'},'naturally':{ru:'естественно',en:'in a way that is normal or fluent'},'wanted':{ru:'хотел',en:'past form of want: wished or desired something'},'meeting':{ru:'встреча',en:'an occasion when people come together'},'rescheduled':{ru:'перенесённый; перенести',en:'arranged for a different time'},'café':{ru:'кафе',en:'a small restaurant or place serving drinks and light meals'},'pay':{ru:'платить',en:'to give money in exchange for something'},'card':{ru:'карта',en:'a small plastic or electronic payment card'},'please':{ru:'пожалуйста',en:'used to make a request more polite'},'context':{ru:'контекст',en:'the situation or surrounding words that help explain meaning'},'language':{ru:'язык',en:'a system of communication using words and rules'},'culture':{ru:'культура',en:'the ideas, customs, and social practices of a group'},'study':{ru:'изучать; исследовать',en:'to learn about or examine something carefully'},'claim':{ru:'утверждение',en:'a statement that something is true'},'paper':{ru:'научная работа; статья',en:'an academic written work'},'academic':{ru:'академический',en:'relating to education, study, or scholarship'},'sentence':{ru:'предложение',en:'a group of words forming a complete grammatical statement'},'because':{ru:'потому что',en:'for the reason that'},'reason':{ru:'причина; основание',en:'a cause, explanation, or justification'},'past':{ru:'прошлое; прошедший',en:'the time before the present'}
+  };
+  const WORD_RE=/[A-Za-z]+(?:['’][A-Za-z]+)?/g;
+  function dayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function dictInfo(word){
+    const key=word.toLowerCase().replace(/[’]/g,"'");
+    const x=DICT[key];
+    return x || {ru:'Перевод уточняется в контексте',en:'Definition will be refined from context'};
+  }
+  function isSavedToday(word){return (st.dict||[]).some(x=>x.key===word.toLowerCase()&&x.lastClickedDay===dayKey())}
+  function wordHtml(text, sentence){
+    return esc(text).replace(WORD_RE, m=>{
+      const key=m.toLowerCase();
+      const disabled=isSavedToday(key)?' is-saved-today':'';
+      return '<button type="button" class="dict-word'+disabled+'" data-dict-word="'+esc(key)+'" data-dict-original="'+esc(m)+'" data-dict-sentence="'+esc(sentence||text)+'">'+esc(m)+'</button>';
+    });
+  }
+  function saveWord(word, sentence){
+    const key=word.toLowerCase(); const today=dayKey(); const info=dictInfo(key);
+    st.dict=st.dict||[];
+    let item=st.dict.find(x=>x.key===key);
+    if(!item){item={key,unit:word,translation:info.ru,definition:info.en,firstContext:sentence||'',addedAt:Date.now(),lastClickedDay:today,status:'new',clicks:1,reviewCount:0};st.dict.unshift(item)}
+    else {item.lastClickedDay=today;item.clicks=(item.clicks||0)+1;if(!item.firstContext)item.firstContext=sentence||'';if(!item.definition)item.definition=info.en;if(!item.translation)item.translation=info.ru;}
+    save(); return item;
+  }
+  function showWordPopup(btn){
+    const word=btn.dataset.dictWord, original=btn.dataset.dictOriginal, sentence=btn.dataset.dictSentence||'';
+    const item=saveWord(word,sentence);
+    document.querySelectorAll('.dict-word-popover').forEach(x=>x.remove());
+    const pop=document.createElement('div');pop.className='dict-word-popover';
+    pop.innerHTML='<div class="dict-pop-head"><b>'+esc(original)+'</b><button type="button" class="dict-pop-close" aria-label="Закрыть">×</button></div><div class="dict-pop-translation">'+esc(item.translation)+'</div><div class="dict-pop-definition">'+esc(item.definition)+'</div><div class="dict-pop-context">'+esc(sentence)+'</div><div class="dict-pop-note">Добавлено в личный словарь</div>';
+    const host=btn.closest('.english-question,.english-option')||btn.parentElement; host.style.position='relative';host.appendChild(pop);
+    pop.querySelector('.dict-pop-close').onclick=()=>pop.remove();
+    btn.classList.add('is-saved-today');
+  }
+  function wireDictionaryWords(root){
+    (root||document).querySelectorAll('.dict-word:not(.is-saved-today)').forEach(b=>{b.onclick=e=>{e.stopPropagation();showWordPopup(b)}});
+  }
   function pick(){
     const recent=st.history.slice(-8).map(x=>x.taskId), errors={};
     st.history.forEach(x=>{if(!x.correct)errors[x.topic]=(errors[x.topic]||0)+1});
@@ -62,7 +107,7 @@
   function taskMarkup(t, retry=false){
     const isChoice=t.type==='mcq'||t.type==='reading';
     const body=isChoice
-      ? '<div class="english-options">'+t.opts.map((o,i)=>'<button type="button" class="english-option" data-answer="'+esc(o)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+esc(o)+'</b></button>').join('')+'</div>'
+      ? '<div class="english-options">'+t.opts.map((o,i)=>'<div class="english-option" role="button" tabindex="0" data-answer="'+esc(o)+'"><span>'+String.fromCharCode(65+i)+'</span><b>'+wordHtml(o,t.q)+'</b></div>').join('')+'</div>'
       : '<textarea id="englishAnswer" rows="3" placeholder="'+(retry?'Попробуй ещё раз…':'Твой ответ…')+'"></textarea>';
     return (retry?'<div class="english-retry-label">Попробуй ещё раз</div>':'')+body+'<div class="english-answer-bar"><button class="primary" id="englishCheck" disabled>Проверить ответ</button><button class="ghost english-stop" id="englishStop">Остановить</button></div><div id="englishFeedback"></div>';
   }
@@ -73,8 +118,8 @@
     setProgress(st.session.n,st.session.total);
     const title='<div class="english-task-heading"><small>AI-ТРЕНИРОВКА</small></div>';
     const meta='<div class="task-meta"><span>'+esc(current.skill)+'</span><span>'+esc(current.context)+'</span></div>';
-    box.innerHTML=title+meta+'<h1 class="english-question">'+esc(current.q)+'</h1>'+taskMarkup(current,false);
-    wireAnswer();
+    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,false);
+    wireAnswer(); wireDictionaryWords(box);
   }
 
   function renderManualTask(retry=false){
@@ -83,18 +128,17 @@
     const label=$('#englishProgressText'),bar=$('#englishProgressBar'); if(label)label.textContent='Задание '+(manual.done+1)+' · до остановки'; if(bar)bar.style.width='0%';
     const header='<div class="english-task-heading"><small>ТРЕНИРОВКА ПО ТЕМЕ</small><h2>'+esc(manual.topic)+'</h2></div>';
     const meta='<div class="task-meta"><span>'+esc(t.skill)+'</span><span>'+esc(t.context)+'</span></div>';
-    box.innerHTML=header+meta+'<h1 class="english-question">'+esc(t.q)+'</h1>'+taskMarkup(t,retry);
-    wireAnswer(true);
+    box.innerHTML=header+meta+'<h1 class="english-question">'+wordHtml(t.q,t.q)+'</h1>'+taskMarkup(t,retry);
+    wireAnswer(true); wireDictionaryWords(box);
   }
 
   function wireAnswer(){
     const isChoice=current.type==='mcq'||current.type==='reading';
     let selected='';
     if(isChoice){
-      document.querySelectorAll('.english-option').forEach(b=>b.onclick=()=>{
-        document.querySelectorAll('.english-option').forEach(x=>x.classList.remove('selected'));
-        b.classList.add('selected');selected=b.dataset.answer;
-        const check=$('#englishCheck');if(check)check.disabled=false;
+      document.querySelectorAll('.english-option').forEach(b=>{
+        b.onclick=e=>{ if(e.target.closest('.dict-word')) return; document.querySelectorAll('.english-option').forEach(x=>x.classList.remove('selected')); b.classList.add('selected'); selected=b.dataset.answer; const check=$('#englishCheck'); if(check)check.disabled=false; };
+        b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}};
       });
     } else {
       const input=$('#englishAnswer');
@@ -153,8 +197,8 @@
     const box=$('#englishFullscreenContent');
     const title='<div class="english-task-heading"><small>AI-ТРЕНИРОВКА</small></div>';
     const meta='<div class="task-meta"><span>'+esc(current.skill)+'</span><span>'+esc(current.context)+'</span></div>';
-    box.innerHTML=title+meta+'<h1 class="english-question">'+esc(current.q)+'</h1>'+taskMarkup(current,true);
-    wireAnswer();
+    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,true);
+    wireAnswer(); wireDictionaryWords(box);
     setProgress(st.session.n,st.session.total);
   }
 
@@ -189,10 +233,20 @@
   }
 
   function renderDictionary(){
-    nav('english');const box=$('#englishTask');
-    box.innerHTML='<div class="english-profile"><span>СЛОВАРЬ</span><h3>Личные слова и выражения</h3><p>Личный словарь — следующий этап модуля. Автоматическое добавление слов и отдельная тренировка пока не подключены.</p><div class="dict-empty">'+(st.dict.length?st.dict.map(x=>'<div><b>'+esc(x.unit)+'</b> — '+esc(x.translation||'сохранено')+'</div>').join(''):'Пока нет автоматически добавленных записей.')+'</div></div>';
+    nav('english'); const box=$('#englishTask'); const list=st.dict||[];
+    const cards=list.map((x,i)=>'<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p><div class="dict-card-actions"><button type="button" class="text-link dict-delete" data-dict-index="'+i+'">Удалить</button></div></article>').join('');
+    box.innerHTML='<div class="english-profile dictionary-page"><span>СЛОВАРЬ</span><h3>Личные слова и выражения</h3><p>Нажми слово в английском задании — оно сразу попадёт сюда. Словарь сохраняется на этом устройстве.</p><div class="dict-add"><input id="dictManualWord" class="topic-search" placeholder="Добавить слово или фразу…"><button class="primary" id="dictManualAdd">Добавить</button></div><div class="dict-toolbar"><input id="dictSearch" class="topic-search" placeholder="Поиск в словаре…"><select id="dictFilter"><option value="newest">Сначала новые</option><option value="alpha">По алфавиту</option><option value="new">Новые</option><option value="familiar">Требуют практики</option><option value="mastered">Освоено</option></select></div><div id="dictList">'+(cards||'<div class="dict-empty">Пока нет записей. Нажми на любое английское слово в задании.</div>')+'</div></div>';
+    const renderFiltered=()=>{
+      const q=($('#dictSearch')?.value||'').trim().toLowerCase(), f=$('#dictFilter')?.value||'newest';
+      let arr=(st.dict||[]).filter(x=>!q || x.unit.toLowerCase().includes(q) || (x.translation||'').toLowerCase().includes(q));
+      if(f==='alpha')arr.sort((a,b)=>a.unit.localeCompare(b.unit)); else if(f!=='newest')arr=arr.filter(x=>x.status===f);
+      else arr.sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+      $('#dictList').innerHTML=arr.length?arr.map(x=>'<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p></article>').join(''):'<div class="dict-empty">Ничего не найдено.</div>';
+    };
+    $('#dictSearch').oninput=renderFiltered; $('#dictFilter').onchange=renderFiltered;
+    $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const item=saveWord(v.split(/\s+/)[0],v); item.unit=v; item.firstContext='Добавлено вручную'; item.lastClickedDay=null; item.status='new'; save(); renderDictionary();};
+    box.querySelectorAll('.dict-delete').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.dictIndex); if(st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}});
   }
-
   function renderTopic(){
     nav('english');const box=$('#englishTask');
     const topics=['Conditionals','Academic collocations','Reading: main idea','Register: formal requests','Listening: gist','Writing: concise academic sentences','Translation: meaning and register','Real-life communication'];

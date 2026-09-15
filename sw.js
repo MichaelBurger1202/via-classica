@@ -1,12 +1,12 @@
-const CACHE = 'via-classica-v9';
+const CACHE = 'via-classica-v13';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=9',
-  './app.js?v=9',
-  './planner.js?v=9',
-  './english.js?v=9',
-  './manifest.webmanifest?v=9',
+  './styles.css?v=13',
+  './app.js?v=13',
+  './planner.js?v=13',
+  './english.js?v=13',
+  './manifest.webmanifest?v=13',
   './icon-192.png',
   './icon-512.png'
 ];

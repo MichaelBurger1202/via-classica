@@ -24,3 +24,26 @@
 /* v9 · installed-app controls */
 .install-app{display:block;width:100%;margin-top:14px;padding:10px 12px;font:inherit;cursor:pointer}
 .install-app[hidden]{display:none}
+.schedule-import{margin-top:14px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+.schedule-import h3{font:500 22px Georgia;margin:5px 0}.schedule-import p{margin:0;color:var(--muted);font-size:13px;max-width:760px;line-height:1.5}
+.schedule-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.schedule-status{grid-column:1/-1;font-size:12px;color:var(--muted);min-height:16px}.schedule-status.ok{color:var(--green2)}.schedule-status.bad{color:var(--terra)}
+@media(max-width:800px){.schedule-import{grid-template-columns:1fr}.schedule-actions{justify-content:stretch}.schedule-actions>*{flex:1}}
+
+.dict-word{display:inline;border:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}
+.dict-word:hover{opacity:.75}.dict-word.is-saved-today{cursor:default;text-decoration:none;opacity:1}
+.dict-word-popover{position:absolute;z-index:30;left:0;right:0;margin-top:8px;padding:14px;border:1px solid rgba(102,112,68,.25);border-radius:14px;background:var(--panel,#fffdf7);box-shadow:0 12px 30px rgba(40,35,20,.12)}
+.dict-pop-head{display:flex;justify-content:space-between;align-items:center}.dict-pop-close{border:0;background:none;font-size:22px;cursor:pointer}.dict-pop-translation{font-size:18px;font-weight:700;margin-top:8px}.dict-pop-context{margin-top:8px;font-size:13px;line-height:1.45;opacity:.72}.dict-pop-note{margin-top:9px;font-size:12px;opacity:.62}
+.dict-card{padding:14px 0;border-bottom:1px solid rgba(102,112,68,.16)}.dict-card>div{display:flex;gap:8px;align-items:center}.dict-card strong{display:block;margin-top:5px}.dict-card p{margin:6px 0;font-size:13px;opacity:.72}.dict-status{font-size:11px;padding:3px 7px;border-radius:99px;background:rgba(102,112,68,.1)}
+
+/* v12 dictionary fixes */
+.english-option{cursor:pointer;position:relative}
+.english-option:focus{outline:2px solid rgba(102,112,68,.35);outline-offset:2px}
+.dict-word{position:relative;z-index:2}
+.dict-word.is-saved-today{cursor:default}
+.dict-word-popover{max-width:min(520px,calc(100vw - 48px));right:auto;min-width:240px}
+.dict-pop-definition,.dict-definition{margin-top:6px;font-size:13px;line-height:1.45;opacity:.82}
+.dict-add,.dict-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.dict-add .topic-search,.dict-toolbar .topic-search{flex:1;min-width:180px}
+.dict-toolbar select{border:1px solid var(--line,#d9d1c2);border-radius:10px;padding:9px;background:transparent;color:inherit;font:inherit}
+.dict-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dict-card-actions{margin-top:8px}

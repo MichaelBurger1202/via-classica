@@ -1,5 +1,6 @@
 (function(){
 const PKEY='viaClassicaPlannerV2';
+const SCHEDULE_FORMAT='via-classica-schedule-v1';
 const planner=JSON.parse(localStorage.getItem(PKEY)||'{}');
 planner.modes=planner.modes||{}; planner.frozen=planner.frozen||{}; planner.seeded=planner.seeded||false;
 const iso=d=>d.toISOString().slice(0,10), today=()=>iso(new Date());
@@ -13,10 +14,59 @@ const saveState=s=>localStorage.setItem('viaClassicaV2',JSON.stringify(s));
 const getTasks=()=>getState().tasks;
 const capacity=d=>caps[planner.modes[d]||'normal'];
 const isDone=t=>t.done===true||t.status==='done';
+function setScheduleStatus(msg,ok=true){const el=document.getElementById('scheduleStatus');if(el){el.textContent=msg;el.className='schedule-status '+(ok?'ok':'bad')}}
+function normalizeSchedule(raw){
+ if(!raw || typeof raw!=='object') throw new Error('Файл не является объектом JSON.');
+ if(raw.format && raw.format!==SCHEDULE_FORMAT) throw new Error('Неизвестный формат расписания. Нужен via-classica-schedule-v1.');
+ const tasks=Array.isArray(raw.tasks)?raw.tasks:[];
+ if(!tasks.length) throw new Error('В расписании нет задач.');
+ const clean=tasks.map((t,i)=>{
+  if(!t.date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(t.date)) throw new Error('Задача №'+(i+1)+': неверная дата.');
+  if(!t.text) throw new Error('Задача №'+(i+1)+': нет названия.');
+  const type=['move','soft','hard'].includes(t.type)?t.type:'move';
+  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date:t.date,text:String(t.text),type,minutes:Math.max(5,Number(t.minutes)||45),done:false,plan:true,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
+ });
+ return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta||{},events:Array.isArray(raw.events)?raw.events:[]};
+}
+function applySchedule(raw){
+ const plan=normalizeSchedule(raw), s=getState(), old=s.tasks.filter(t=>t.plan);
+ const doneById=new Map(old.map(t=>[String(t.id),!!t.done]));
+ const newIds=new Set(plan.tasks.map(t=>String(t.id)));
+ // Preserve completion only for tasks with the same stable id; replace the generated plan wholesale.
+ plan.tasks.forEach(t=>{if(doneById.get(String(t.id)))t.done=true});
+ s.tasks=s.tasks.filter(t=>!t.plan).concat(plan.tasks);
+ saveState(s);
+ planner.planVersion=10; planner.seeded=true; planner.scheduleTitle=plan.title; planner.scheduleUpdatedAt=new Date().toISOString();
+ planner.scheduleMeta=plan.meta; planner.scheduleEvents=plan.events;
+ localStorage.setItem(PKEY,JSON.stringify(planner));
+ const moved=replan();
+ render();
+ setScheduleStatus('Загружено: '+plan.title+' · '+plan.tasks.length+' задач · пересчитано переносов: '+moved,true);
+}
+async function loadScheduleText(text){
+ let raw; try{raw=JSON.parse(text)}catch(e){throw new Error('Не удалось прочитать JSON. Проверь файл или ссылку.')} applySchedule(raw);
+}
+function schedulePayload(){
+ const s=getState();
+ return {format:SCHEDULE_FORMAT,title:planner.scheduleTitle||'Via Classica — текущий план',generatedAt:new Date().toISOString(),meta:planner.scheduleMeta||{},events:planner.scheduleEvents||[],tasks:s.tasks.filter(t=>t.plan).map(t=>({id:t.id,date:t.date,text:t.text,type:t.type,minutes:t.minutes,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||''}))};
+}
+function exportSchedule(){
+ const blob=new Blob([JSON.stringify(schedulePayload(),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='via-classica-schedule.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); setScheduleStatus('Текущий план сохранён в файл via-classica-schedule.json.',true);
+}
+async function importScheduleUrl(){
+ const url=prompt('Вставь прямую ссылку на JSON-файл расписания. Для GitHub используй Raw-ссылку.'); if(!url)return;
+ try{setScheduleStatus('Загружаю расписание…',true);const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}catch(e){setScheduleStatus('Не удалось загрузить: '+e.message+' Если сайт запрещает запрос, скачай JSON и загрузи его файлом.',false)}
+}
+function initScheduleImport(){
+ const file=document.getElementById('scheduleFile'), fileBtn=document.getElementById('importScheduleFile'), urlBtn=document.getElementById('importScheduleUrl'), exp=document.getElementById('exportSchedule');
+ fileBtn?.addEventListener('click',()=>file.click());
+ file?.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;try{setScheduleStatus('Читаю файл…',true);await loadScheduleText(await f.text())}catch(e){setScheduleStatus(e.message,false)}finally{file.value=''}});
+ urlBtn?.addEventListener('click',importScheduleUrl); exp?.addEventListener('click',exportSchedule);
+}
 const ensureSeed=()=>{
  let s=getState();
  planner.planVersion=planner.planVersion||0;
- if(planner.planVersion<2){
+ if(planner.planVersion<2 && !s.tasks.some(t=>t.plan)){
   // Replace only the site's generated plan. User-created tasks and completion data stay intact.
   s.tasks=s.tasks.filter(t=>!t.plan);
   const seed=[
@@ -89,7 +139,7 @@ function render(){
  const list=document.getElementById('todayTasks'); if(list){let ts=s.tasks.filter(t=>t.date===d&&!isDone(t));list.innerHTML='';if(planner.frozen[d]){list.innerHTML='<div class="empty">День заморожен. Можно отдыхать без долга.</div>'}else if(!ts.length){list.innerHTML='<div class="empty">На сегодня нет незакрытых задач.</div>'}else ts.forEach(t=>{const r=document.createElement('div');r.className='task-item';r.innerHTML='<button class="task-check">○</button><span class="task-main"><b>'+esc(t.text)+'</b><small>'+t.minutes+' мин · '+(t.type==='hard'?'🔴 жёсткая':t.type==='soft'?'🟢 фоновая':'🟡 переносимая')+(t.replanned?' · перенесено':'')+'</small></span><button class="task-detail">подробнее</button><button class="task-more">⋯</button>';r.querySelector('.task-check').onclick=()=>{t.done=true;saveState(s);render()};r.querySelector('.task-detail').onclick=()=>{let msg=(t.goal?'ЦЕЛЬ\n'+t.goal+'\n\n':'')+(t.steps?'ЧТО ДЕЛАТЬ\n'+t.steps+'\n\n':'')+(t.result?'РЕЗУЛЬТАТ\n'+t.result:'');if(t.resource)msg+='\n\nОФИЦИАЛЬНЫЙ МАТЕРИАЛ\n'+t.resource;alert(msg||'Для этой задачи подробная инструкция пока не задана.');};r.querySelector('.task-more').onclick=()=>{const a=prompt('done = выполнено\n25 / 50 / 75 = частично\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(['25','50','75'].includes(a)){let left=Math.max(15,Math.round(t.minutes*(1-Number(a)/100)/15)*15);t.minutes=left;t.date=add(d,1)}else if(a==='skip'&&t.type!=='hard'){t.date=add(d,1)}else if(a==='delete'){s.tasks=s.tasks.filter(x=>x.id!==t.id)}saveState(s);render()};list.appendChild(r)})}
 }
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-ensureSeed(); replan();
+ensureSeed(); initScheduleImport(); replan(); if(planner.scheduleTitle)setScheduleStatus('Активно расписание: '+planner.scheduleTitle+' · обновлено '+new Date(planner.scheduleUpdatedAt||Date.now()).toLocaleString('ru-RU'),true);
 document.getElementById('dayMode').addEventListener('change',e=>{planner.modes[today()]=e.target.value;localStorage.setItem(PKEY,JSON.stringify(planner));render()});
 document.getElementById('freezeDay').addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];localStorage.setItem(PKEY,JSON.stringify(planner));render()});
 document.getElementById('freezePeriod').addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;let d=start,n=0;while(d<=end&&n<90){planner.frozen[d]=true;d=add(d,1);n++}localStorage.setItem(PKEY,JSON.stringify(planner));alert('Заморожено дней: '+n+'.');render()});
