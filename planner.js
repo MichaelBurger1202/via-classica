@@ -1,18 +1,33 @@
 (function(){
 const PKEY='viaClassicaPlannerV2';
 const SCHEDULE_FORMAT='via-classica-schedule-v1';
-const planner=JSON.parse(localStorage.getItem(PKEY)||'{}');
-planner.modes=planner.modes||{}; planner.frozen=planner.frozen||{}; planner.seeded=planner.seeded||false;
-const iso=d=>d.toISOString().slice(0,10), today=()=>iso(new Date());
+let planner={};
+try { planner=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; } catch(e) {
+  try { const raw=localStorage.getItem(PKEY); if(raw) localStorage.setItem(PKEY+'_corrupt_backup',raw); } catch(_) {}
+  planner={};
+}
+if(!planner || typeof planner!=='object' || Array.isArray(planner)) planner={};
+planner.modes=(planner.modes&&typeof planner.modes==='object'&&!Array.isArray(planner.modes))?planner.modes:{}; planner.frozen=(planner.frozen&&typeof planner.frozen==='object'&&!Array.isArray(planner.frozen))?planner.frozen:{}; planner.seeded=!!planner.seeded;
+const savePlanner=()=>{try{localStorage.setItem(PKEY,JSON.stringify(planner));return true}catch(e){console.warn('Via Classica planner settings storage error',e);try{localStorage.setItem(PKEY+'_storage_error_backup',JSON.stringify({at:Date.now(),planner}));}catch(_){}return false}};
+const iso=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}, today=()=>iso(new Date());
 const dt=s=>new Date(s+'T12:00:00'), add=(s,n)=>{let d=dt(s);d.setDate(d.getDate()+n);return iso(d)};
 const caps={normal:150,light:90,heavy:210,vacation:240,festival:30};
 const modeName={normal:'Обычный день',light:'Лёгкий день',heavy:'Тяжёлый день',vacation:'Каникулы',festival:'Фестиваль / поездка'};
 const stateRef=window.__viaState || null;
 // Existing app keeps its state in a lexical variable, so we use localStorage directly.
-const getState=()=>{let s=JSON.parse(localStorage.getItem('viaClassicaV2')||'{}');s.tasks=s.tasks||[];return s};
-const saveState=s=>localStorage.setItem('viaClassicaV2',JSON.stringify(s));
+const getState=()=>{
+  let s={};
+  try { s=JSON.parse(localStorage.getItem('viaClassicaV2')||'{}')||{}; } catch(e) {
+    try { const raw=localStorage.getItem('viaClassicaV2'); if(raw) localStorage.setItem('viaClassicaV2_corrupt_backup',raw); } catch(_) {}
+    s={};
+  }
+  s.tasks=Array.isArray(s.tasks)?s.tasks.filter(t=>t&&typeof t==='object').map(t=>{const out=Object.assign({},t);out.text=String(t.text||'').trim();out.date=String(t.date||'');out.type=['move','soft','hard'].includes(t.type)?t.type:'move';const n=Number(t.minutes);out.minutes=Number.isFinite(n)?Math.max(5,Math.min(600,n)):45;out.done=!!t.done;out.plan=!!t.plan;return out}):[];
+  return s
+};
+const saveState=s=>{try{localStorage.setItem('viaClassicaV2',JSON.stringify(s));return true}catch(e){console.warn('Via Classica planner storage error',e);try{localStorage.setItem('viaClassicaV2_storage_error_backup',JSON.stringify({at:Date.now(),state:s}));}catch(_){}return false}};
 const getTasks=()=>getState().tasks;
-const capacity=d=>caps[planner.modes[d]||'normal'];
+const capacity=d=>caps[planner.modes[d]||'normal']||caps.normal;
+const validDate=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return false;const d=dt(String(s));return !Number.isNaN(d.getTime())&&iso(d)===String(s)};
 const isDone=t=>t.done===true||t.status==='done';
 function setScheduleStatus(msg,ok=true){const el=document.getElementById('scheduleStatus');if(el){el.textContent=msg;el.className='schedule-status '+(ok?'ok':'bad')}}
 function normalizeSchedule(raw){
@@ -21,10 +36,13 @@ function normalizeSchedule(raw){
  const tasks=Array.isArray(raw.tasks)?raw.tasks:[];
  if(!tasks.length) throw new Error('В расписании нет задач.');
  const clean=tasks.map((t,i)=>{
-  if(!t.date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(t.date)) throw new Error('Задача №'+(i+1)+': неверная дата.');
+  if(!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.date))) throw new Error('Задача №'+(i+1)+': неверная дата.');
   if(!t.text) throw new Error('Задача №'+(i+1)+': нет названия.');
+  const date=String(t.date);
+  const parsed=dt(date);
+  if(Number.isNaN(parsed.getTime()) || iso(parsed)!==date) throw new Error('Задача №'+(i+1)+': несуществующая дата.');
   const type=['move','soft','hard'].includes(t.type)?t.type:'move';
-  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date:t.date,text:String(t.text),type,minutes:Math.max(5,Number(t.minutes)||45),done:false,plan:true,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
+  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date,text:String(t.text),type,minutes:(()=>{const n=Number(t.minutes);return Number.isFinite(n)?Math.max(5,Math.min(600,n)):45})(),done:false,plan:true,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
  });
  return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta||{},events:Array.isArray(raw.events)?raw.events:[]};
 }
@@ -38,7 +56,7 @@ function applySchedule(raw){
  saveState(s);
  planner.planVersion=10; planner.seeded=true; planner.scheduleTitle=plan.title; planner.scheduleUpdatedAt=new Date().toISOString();
  planner.scheduleMeta=plan.meta; planner.scheduleEvents=plan.events;
- localStorage.setItem(PKEY,JSON.stringify(planner));
+ savePlanner();
  const moved=replan();
  render();
  setScheduleStatus('Загружено: '+plan.title+' · '+plan.tasks.length+' задач · пересчитано переносов: '+moved,true);
@@ -109,7 +127,7 @@ const ensureSeed=()=>{
    ['2026-12-31','Квартальный пересмотр Via Classica','hard',60,'Обновить план на следующие 3 месяца по реальным результатам.','Вместе пересмотреть олимпиады, IELTS, поступление и нагрузку. Удалить устаревшие задачи; добавить только подтверждённые ближайшие шаги.','Обновлённый план января–марта.','https://olymp.spbu.ru/']
   ];
   seed.forEach((x,i)=>s.tasks.push({id:'plan2-'+i,date:x[0],text:x[1],type:x[2],minutes:x[3],done:false,plan:true,goal:x[4],steps:x[5],result:x[6],resource:x[7]}));
-  saveState(s);planner.planVersion=2;planner.seeded=true;localStorage.setItem(PKEY,JSON.stringify(planner));
+  saveState(s);planner.planVersion=2;planner.seeded=true;savePlanner();
  }
 };
 function spend(s,d){return s.tasks.filter(t=>t.date===d&&!isDone(t)).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
@@ -140,11 +158,11 @@ function render(){
 }
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 ensureSeed(); initScheduleImport(); replan(); if(planner.scheduleTitle)setScheduleStatus('Активно расписание: '+planner.scheduleTitle+' · обновлено '+new Date(planner.scheduleUpdatedAt||Date.now()).toLocaleString('ru-RU'),true);
-document.getElementById('dayMode').addEventListener('change',e=>{planner.modes[today()]=e.target.value;localStorage.setItem(PKEY,JSON.stringify(planner));render()});
-document.getElementById('freezeDay').addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];localStorage.setItem(PKEY,JSON.stringify(planner));render()});
-document.getElementById('freezePeriod').addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;let d=start,n=0;while(d<=end&&n<90){planner.frozen[d]=true;d=add(d,1);n++}localStorage.setItem(PKEY,JSON.stringify(planner));alert('Заморожено дней: '+n+'.');render()});
+document.getElementById('dayMode').addEventListener('change',e=>{planner.modes[today()]=e.target.value;savePlanner();render()});
+document.getElementById('freezeDay').addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
+document.getElementById('freezePeriod').addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}let d=start,n=0;while(d<=end&&n<90){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
 document.getElementById('replanBtn').addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
 // Replace the old task form handler with richer version by adding a second listener; stop old handler effects by using a marker.
-document.getElementById('taskForm').addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput').value.trim();if(!text)return;s.tasks.push({id:'u'+Date.now(),text,date:today(),type:document.getElementById('taskType').value,minutes:Number(document.getElementById('taskMinutes').value)||45,done:false});saveState(s);document.getElementById('taskInput').value='';render()});
+document.getElementById('taskForm').addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput').value.trim();if(!text)return;s.tasks.push({id:'u'+Date.now(),text,date:today(),type:document.getElementById('taskType').value,minutes:Math.max(15,Math.min(600,Number(document.getElementById('taskMinutes').value)||45)),done:false});saveState(s);document.getElementById('taskInput').value='';render()});
 render();
 })();

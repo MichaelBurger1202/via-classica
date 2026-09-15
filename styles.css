@@ -47,3 +47,5 @@
 .dict-toolbar select{border:1px solid var(--line,#d9d1c2);border-radius:10px;padding:9px;background:transparent;color:inherit;font:inherit}
 .dict-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .dict-card-actions{margin-top:8px}
+
+.task-source{margin-top:14px;font-size:12px;opacity:.72}.task-source span{margin-right:6px}.task-source a{text-decoration:underline;text-underline-offset:3px}

@@ -3,30 +3,37 @@
   const $=s=>document.querySelector(s);
   const esc=s=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const bank=[
-    {id:'g1',type:'mcq',skill:'Grammar',topic:'Conditionals',difficulty:2,context:'университет',q:'If I ___ enough time tomorrow, I’ll join the library tour.',opts:['have','had','would have','having'],a:'have',why:'После if для реального условия в будущем здесь используется Present Simple.',ex:'If I have time, I’ll come.'},
-    {id:'g2',type:'mcq',skill:'Grammar',topic:'Conditionals',difficulty:2,context:'повседневный',q:'If I were you, I ___ the email before sending it.',opts:['check','checked','would check','will check'],a:'would check',why:'Во Second Conditional в главной части используется would + infinitive.',ex:'If I were you, I would wait.'},
-    {id:'v1',type:'input',skill:'Vocabulary',topic:'Academic collocations',difficulty:2,context:'университет',q:'Complete naturally: “The article provides strong ___ for the argument.”',a:'evidence',why:'Evidence is the natural academic noun for facts or material supporting an argument.',ex:'The study provides evidence for the claim.'},
-    {id:'v2',type:'mcq',skill:'Vocabulary',topic:'Academic collocations',difficulty:2,context:'университет',q:'Which verb most naturally completes: “The seminar will ___ the relationship between myth and ritual”?',opts:['examine','make','do','put'],a:'examine',why:'Examine is the standard academic verb for studying a relationship or issue closely.',ex:'The paper examines the relationship between language and culture.'},
-    {id:'r1',type:'reading',skill:'Reading',topic:'Reading: main idea',difficulty:2,context:'академический',q:'Read: “Museums increasingly use digital catalogues not only to preserve records but also to make collections accessible to researchers abroad.” What is the main point?',opts:['Digital catalogues can widen access to museum collections.','Researchers no longer need museums.','Museums are replacing all physical collections.','Digital catalogues are mainly for tourists.'],a:'Digital catalogues can widen access to museum collections.',why:'The sentence links digital catalogues with preservation and wider researcher access.',ex:'Digital tools can make cultural collections available beyond their physical location.'},
-    {id:'c1',type:'mcq',skill:'Contextual use',topic:'Register: formal requests',difficulty:2,context:'университет',q:'Which is the most appropriate opening for a formal email to a university office?',opts:['Dear Admissions Team,','Hey guys,','Hi buddy,','Yo,'],a:'Dear Admissions Team,',why:'This is an appropriate neutral-formal opening for a university office.',ex:'Dear Student Services Team,'},
-    {id:'l1',type:'mcq',skill:'Listening',topic:'Listening: gist',difficulty:2,context:'аэропорт',q:'A station announcement says a train to Rome is delayed and passengers should wait for platform information. What should passengers do?',opts:['Wait for further platform information.','Board immediately on any platform.','Leave the station.','Buy a new ticket for another city.'],a:'Wait for further platform information.',why:'The key instruction is to wait for updated platform information.',ex:'Please wait for further announcements.'},
-    {id:'w1',type:'input',skill:'Writing',topic:'Writing: concise academic sentences',difficulty:3,context:'академический',q:'Write one sentence: explain why primary sources are useful in historical research.',a:'',why:'A strong answer should give a clear reason and connect primary sources with direct evidence from the period being studied.',ex:'Primary sources are useful because they provide direct evidence from the period being studied.'},
-    {id:'t1',type:'input',skill:'Translation',topic:'Translation: meaning and register',difficulty:2,context:'университет',q:'Translate naturally: “Я хотел бы уточнить, можно ли перенести встречу.”',a:'I would like to ask whether the meeting can be rescheduled.',why:'This keeps the polite register and the meaning of asking whether the meeting can be moved.',ex:'I would like to check whether the appointment can be rescheduled.'},
-    {id:'c2',type:'input',skill:'Contextual use',topic:'Real-life communication',difficulty:3,context:'повседневный',q:'You are in a café. Ask politely whether you can pay by card. Write one sentence.',a:'Can I pay by card?',why:'This is a natural, polite everyday question in this context.',ex:'Can I pay by card, please?'}
+    {id:'g1',type:'mcq',skill:'Grammar',topic:'Conditionals',difficulty:2,context:'университет',q:'If I ___ enough time tomorrow, I’ll join the library tour.',opts:['have','had','would have','having'],a:'have',why:'После if для реального условия в будущем здесь используется Present Simple.',ex:'If I have time, I’ll come.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-if'},
+    {id:'g2',type:'mcq',skill:'Grammar',topic:'Conditionals',difficulty:2,context:'повседневный',q:'If I were you, I ___ the email before sending it.',opts:['check','checked','would check','will check'],a:'would check',why:'Во Second Conditional в главной части используется would + infinitive.',ex:'If I were you, I would wait.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-if'},
+    {id:'v1',type:'input',skill:'Vocabulary',topic:'Academic collocations',difficulty:2,context:'университет',q:'Complete naturally: “The article provides strong ___ for the argument.”',a:'evidence',why:'Evidence is the natural academic noun for facts or material supporting an argument.',ex:'The study provides evidence for the claim.',sourceName:'Oxford Learner’s Dictionaries',sourceUrl:'https://www.oxfordlearnersdictionaries.com/'},
+    {id:'v2',type:'mcq',skill:'Vocabulary',topic:'Academic collocations',difficulty:2,context:'университет',q:'Which verb most naturally completes: “The seminar will ___ the relationship between myth and ritual”?',opts:['examine','make','do','put'],a:'examine',why:'Examine is the standard academic verb for studying a relationship or issue closely.',ex:'The paper examines the relationship between language and culture.',sourceName:'Oxford Learner’s Dictionaries',sourceUrl:'https://www.oxfordlearnersdictionaries.com/'},
+    {id:'r1',type:'reading',skill:'Reading',topic:'Reading: main idea',difficulty:2,context:'академический',q:'Read: “Museums increasingly use digital catalogues not only to preserve records but also to make collections accessible to researchers abroad.” What is the main point?',opts:['Digital catalogues can widen access to museum collections.','Researchers no longer need museums.','Museums are replacing all physical collections.','Digital catalogues are mainly for tourists.'],a:'Digital catalogues can widen access to museum collections.',why:'The sentence links digital catalogues with preservation and wider researcher access.',ex:'Digital tools can make cultural collections available beyond their physical location.',sourceName:'IELTS',sourceUrl:'https://ielts.org/'},
+    {id:'c1',type:'mcq',skill:'Contextual use',topic:'Register: formal requests',difficulty:2,context:'университет',q:'Which is the most appropriate opening for a formal email to a university office?',opts:['Dear Admissions Team,','Hey guys,','Hi buddy,','Yo,'],a:'Dear Admissions Team,',why:'This is an appropriate neutral-formal opening for a university office.',ex:'Dear Student Services Team,',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
+    {id:'l1',type:'mcq',skill:'Listening',topic:'Listening: gist',difficulty:2,context:'аэропорт',q:'A station announcement says a train to Rome is delayed and passengers should wait for platform information. What should passengers do?',opts:['Wait for further platform information.','Board immediately on any platform.','Leave the station.','Buy a new ticket for another city.'],a:'Wait for further platform information.',why:'The key instruction is to wait for updated platform information.',ex:'Please wait for further announcements.',sourceName:'IELTS',sourceUrl:'https://ielts.org/'},
+    {id:'w1',type:'input',skill:'Writing',topic:'Writing: concise academic sentences',difficulty:3,context:'академический',q:'Write one sentence: explain why primary sources are useful in historical research.',a:'',why:'A strong answer should give a clear reason and connect primary sources with direct evidence from the period being studied.',ex:'Primary sources are useful because they provide direct evidence from the period being studied.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
+    {id:'t1',type:'input',skill:'Translation',topic:'Translation: meaning and register',difficulty:2,context:'университет',q:'Translate naturally: “Я хотел бы уточнить, можно ли перенести встречу.”',a:'I would like to ask whether the meeting can be rescheduled.',why:'This keeps the polite register and the meaning of asking whether the meeting can be moved.',ex:'I would like to check whether the appointment can be rescheduled.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
+    {id:'c2',type:'input',skill:'Contextual use',topic:'Real-life communication',difficulty:3,context:'повседневный',q:'You are in a café. Ask politely whether you can pay by card. Write one sentence.',a:'Can I pay by card?',why:'This is a natural, polite everyday question in this context.',ex:'Can I pay by card, please?',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'}
   ];
 
   const DEFAULT_STATE={history:[],session:null,dict:[],profile:{cefr:null,mastered:[],active:[]}};
   let st;
-  try { st=JSON.parse(localStorage.getItem(KEY)||'null')||DEFAULT_STATE; } catch(e) { st=DEFAULT_STATE; localStorage.removeItem(KEY); }
+  try { st=JSON.parse(localStorage.getItem(KEY)||'null')||DEFAULT_STATE; } catch(e) { const raw=localStorage.getItem(KEY); if(raw) { try { localStorage.setItem(KEY+'_corrupt_backup',raw); } catch(_){} } st=JSON.parse(JSON.stringify(DEFAULT_STATE)); }
   if(!st || typeof st!=='object') st=DEFAULT_STATE;
   if(!Array.isArray(st.history)) st.history=[];
+st.history=st.history.filter(x=>x&&typeof x==='object').map(x=>({taskId:typeof x.taskId==='string'?x.taskId:'',topic:typeof x.topic==='string'?x.topic:'',skill:typeof x.skill==='string'?x.skill:'',correct:!!x.correct,ts:Number.isFinite(Number(x.ts))?Number(x.ts):0}));
   if(!Array.isArray(st.dict)) st.dict=[];
+st.dict=st.dict.filter(x=>x&&typeof x==='object'&&typeof x.key==='string').map(x=>({key:String(x.key),unit:String(x.unit||x.key),translation:String(x.translation||''),definition:String(x.definition||''),firstContext:String(x.firstContext||''),addedAt:Number.isFinite(Number(x.addedAt))?Number(x.addedAt):Date.now(),lastClickedDay:x.lastClickedDay?String(x.lastClickedDay):null,status:['new','familiar','mastered'].includes(x.status)?x.status:'new',clicks:Number.isFinite(Number(x.clicks))?Number(x.clicks):0,reviewCount:Number.isFinite(Number(x.reviewCount))?Number(x.reviewCount):0}));
   if(!st.profile || typeof st.profile!=='object') st.profile={cefr:null,mastered:[],active:[]};
   if(!Array.isArray(st.profile.mastered)) st.profile.mastered=[];
   if(!Array.isArray(st.profile.active)) st.profile.active=[];
-  if(st.session && (typeof st.session!=='object' || !Number.isFinite(st.session.n) || !Number.isFinite(st.session.total) || st.session.n<0 || st.session.total<1 || st.session.n>=st.session.total)) st.session=null;
+st.profile.cefr=['A1','A2','B1','B2','C1','C2'].includes(st.profile.cefr)?st.profile.cefr:null;
+  // v13.5.2 migration: B2 could have been written automatically by older builds.
+  // Remove only that legacy value; future profiles are never assigned a CEFR by default.
+  if(st.profile.cefr==='B2' && !st.profile.cefrSource){ st.profile.cefr=null; try{localStorage.setItem(KEY,JSON.stringify(st))}catch(_){} }
+  if(st.session && (typeof st.session!=='object' || !Number.isFinite(st.session.n) || !Number.isFinite(st.session.total) || st.session.n<0 || st.session.total<1 || st.session.n>st.session.total || !Array.isArray(st.session.done))) st.session=null;
+if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor(st.session.total);if(st.session.n>=st.session.total)st.session=null;else st.session.done=st.session.done.filter(x=>typeof x==='string').slice(0,st.session.total);}
   let current=null, mode='ai', manual=null;
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){console.warn('Via Classica English storage error',e)}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(st));return true}catch(e){console.warn('Via Classica English storage error',e)}}
   const DICT = {
     'if':{ru:'если',en:'used to introduce a condition'},'enough':{ru:'достаточно',en:'as much or as many as needed'},'time':{ru:'время',en:'a period during which something happens'},'tomorrow':{ru:'завтра',en:'the day after today'},'join':{ru:'присоединиться; участвовать',en:'to become a member of a group or take part in an activity'},'library':{ru:'библиотека',en:'a place where books and other resources are available for study'},'tour':{ru:'экскурсия',en:'a journey around a place to see and learn about it'},
     'have':{ru:'иметь; располагать',en:'to possess, own, or experience something'},'would':{ru:'бы; вспомогательный глагол',en:'a modal verb used in several conditional and polite constructions'},'check':{ru:'проверять',en:'to examine something to make sure it is correct or satisfactory'},'email':{ru:'электронное письмо',en:'a message sent electronically'},'before':{ru:'до; перед',en:'earlier than a particular time or event'},'sending':{ru:'отправка; отправлением',en:'the act of causing something to be sent'},
@@ -39,22 +46,27 @@
     'translate':{ru:'переводить',en:'to express the meaning of words in another language'},'naturally':{ru:'естественно',en:'in a way that is normal or fluent'},'wanted':{ru:'хотел',en:'past form of want: wished or desired something'},'meeting':{ru:'встреча',en:'an occasion when people come together'},'rescheduled':{ru:'перенесённый; перенести',en:'arranged for a different time'},'café':{ru:'кафе',en:'a small restaurant or place serving drinks and light meals'},'pay':{ru:'платить',en:'to give money in exchange for something'},'card':{ru:'карта',en:'a small plastic or electronic payment card'},'please':{ru:'пожалуйста',en:'used to make a request more polite'},'context':{ru:'контекст',en:'the situation or surrounding words that help explain meaning'},'language':{ru:'язык',en:'a system of communication using words and rules'},'culture':{ru:'культура',en:'the ideas, customs, and social practices of a group'},'study':{ru:'изучать; исследовать',en:'to learn about or examine something carefully'},'claim':{ru:'утверждение',en:'a statement that something is true'},'paper':{ru:'научная работа; статья',en:'an academic written work'},'academic':{ru:'академический',en:'relating to education, study, or scholarship'},'sentence':{ru:'предложение',en:'a group of words forming a complete grammatical statement'},'because':{ru:'потому что',en:'for the reason that'},'reason':{ru:'причина; основание',en:'a cause, explanation, or justification'},'past':{ru:'прошлое; прошедший',en:'the time before the present'}
   };
   const WORD_RE=/[A-Za-z]+(?:['’][A-Za-z]+)?/g;
+  const dictKey=word=>String(word||'').toLowerCase().replace(/[’]/g,"'");
   function dayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
   function dictInfo(word){
-    const key=word.toLowerCase().replace(/[’]/g,"'");
+    const key=dictKey(word);
     const x=DICT[key];
     return x || {ru:'Перевод уточняется в контексте',en:'Definition will be refined from context'};
   }
   function isSavedToday(word){return (st.dict||[]).some(x=>x.key===word.toLowerCase()&&x.lastClickedDay===dayKey())}
   function wordHtml(text, sentence){
-    return esc(text).replace(WORD_RE, m=>{
-      const key=m.toLowerCase();
-      const disabled=isSavedToday(key)?' is-saved-today':'';
-      return '<button type="button" class="dict-word'+disabled+'" data-dict-word="'+esc(key)+'" data-dict-original="'+esc(m)+'" data-dict-sentence="'+esc(sentence||text)+'">'+esc(m)+'</button>';
-    });
+    const raw=String(text??''), sent=sentence||raw; let out='',last=0,m;
+    WORD_RE.lastIndex=0;
+    while((m=WORD_RE.exec(raw))){
+      out+=esc(raw.slice(last,m.index));
+      const original=m[0],key=dictKey(original),disabled=isSavedToday(key)?' is-saved-today':'';
+      out+='<button type="button" class="dict-word'+disabled+'" data-dict-word="'+esc(key)+'" data-dict-original="'+esc(original)+'" data-dict-sentence="'+esc(sent)+'">'+esc(original)+'</button>';
+      last=m.index+original.length;
+    }
+    return out+esc(raw.slice(last));
   }
   function saveWord(word, sentence){
-    const key=word.toLowerCase(); const today=dayKey(); const info=dictInfo(key);
+    const key=dictKey(word); const today=dayKey(); const info=dictInfo(key);
     st.dict=st.dict||[];
     let item=st.dict.find(x=>x.key===key);
     if(!item){item={key,unit:word,translation:info.ru,definition:info.en,firstContext:sentence||'',addedAt:Date.now(),lastClickedDay:today,status:'new',clicks:1,reviewCount:0};st.dict.unshift(item)}
@@ -124,12 +136,12 @@
 
   function renderTask(){
     if(!st.session || st.session.n>=st.session.total){ finish(); return; }
-    current=pick();
+    current=st.session.currentTaskId?bank.find(x=>x.id===st.session.currentTaskId):null; if(!current){current=pick();st.session.currentTaskId=current.id;save();}
     const box=$('#englishFullscreenContent'); if(!box)return;
     setProgress(st.session.n,st.session.total);
     const title='<div class="english-task-heading"><small>AI-ТРЕНИРОВКА</small></div>';
     const meta='<div class="task-meta"><span>'+esc(current.skill)+'</span><span>'+esc(current.context)+'</span></div>';
-    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,false);
+    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,false)+(current.sourceUrl?'<div class="task-source"><span>Источник</span> <a href="'+esc(current.sourceUrl)+'" target="_blank" rel="noopener">'+esc(current.sourceName||'Официальный ресурс')+' ↗</a></div>':'');
     wireAnswer(); wireDictionaryWords(box);
   }
 
@@ -140,7 +152,7 @@
     const label=$('#englishProgressText'),bar=$('#englishProgressBar'); if(label)label.textContent='Задание '+(manual.done+1)+' · до остановки'; if(bar)bar.style.width='0%';
     const header='<div class="english-task-heading"><small>ТРЕНИРОВКА ПО ТЕМЕ</small><h2>'+esc(manual.topic)+'</h2></div>';
     const meta='<div class="task-meta"><span>'+esc(t.skill)+'</span><span>'+esc(t.context)+'</span></div>';
-    box.innerHTML=header+meta+'<h1 class="english-question">'+wordHtml(t.q,t.q)+'</h1>'+taskMarkup(t,retry);
+    box.innerHTML=header+meta+'<h1 class="english-question">'+wordHtml(t.q,t.q)+'</h1>'+taskMarkup(t,retry)+(t.sourceUrl?'<div class="task-source"><span>Источник</span> <a href="'+esc(t.sourceUrl)+'" target="_blank" rel="noopener">'+esc(t.sourceName||'Официальный ресурс')+' ↗</a></div>':'');
     wireAnswer(true); wireDictionaryWords(box);
   }
 
@@ -160,7 +172,7 @@
     $('#englishStop').onclick=()=>closeTraining();
   }
 
-  function normalize(s){return String(s||'').toLowerCase().trim().replace(/[“”"'.,!?;:()\-]/g,' ').replace(/\s+/g,' ')}
+  function normalize(s){return String(s||'').toLowerCase().replace(/[“”"'.,!?;:()\-]/g,' ').replace(/\s+/g,' ').trim()}
   function evaluate(task,answer){
     if(task.a) return normalize(answer)===normalize(task.a);
     if(task.id==='w1') return /\b(primary sources|sources)\b/i.test(answer)&&/\b(evidence|information|direct|period|past|historical)\b/i.test(answer);
@@ -171,13 +183,14 @@
 
   function record(correct){
     st.history.push({taskId:current.id,topic:current.topic,skill:current.skill,correct,ts:Date.now()});
-    if(mode==='ai'){st.session.done.push(current.id);st.session.n++}
+    if(mode==='ai'){if(!st.session.done.includes(current.id))st.session.done.push(current.id);st.session.n++;st.session.currentTaskId=null}
     save();
   }
 
-  function feedbackHtml(correct,firstTry){
+  function feedbackHtml(correct,firstTry,answer){
     if(correct){
-      return '<div class="feedback good"><div class="feedback-title">✓ Верно</div><button class="feedback-link" id="whyBtn">Почему?</button></div>';
+      const better=current.type==='input' && current.ex && normalize(answer)!==normalize(current.ex);
+      return '<div class="feedback good"><div class="feedback-title">✓ Верно</div>'+(better?'<button class="feedback-link" id="betterBtn">Как лучше?</button>':'')+'<button class="feedback-link" id="whyBtn">Почему?</button></div>';
     }
     if(firstTry){
       return '<div class="feedback retry"><div class="feedback-title">Не совсем.</div><p>Попробуй исправить ответ ещё раз.</p><button class="secondary-action" id="retryBtn">Попробовать ещё</button></div>';
@@ -200,7 +213,7 @@
   function check(answer){
     if(!current||!answer||($('#englishCheck')&&$('#englishCheck').disabled))return;
     const correct=evaluate(current,answer),fb=$('#englishFeedback');
-    if(correct){record(true);fb.innerHTML=feedbackHtml(true,false);wireWhy();appendNext();return}
+    if(correct){record(true);fb.innerHTML=feedbackHtml(true,false,answer);wireWhy();appendNext();return}
     if(!current._retried){current._retried=true;fb.innerHTML=feedbackHtml(false,true);$('#englishCheck').disabled=true;$('#retryBtn').onclick=()=>mode==='manual'?renderManualTask(true):renderRetry();return}
     record(false);fb.innerHTML=feedbackHtml(false,false);wireWhy();appendNext();
   }
@@ -209,7 +222,7 @@
     const box=$('#englishFullscreenContent');
     const title='<div class="english-task-heading"><small>AI-ТРЕНИРОВКА</small></div>';
     const meta='<div class="task-meta"><span>'+esc(current.skill)+'</span><span>'+esc(current.context)+'</span></div>';
-    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,true);
+    box.innerHTML=title+meta+'<h1 class="english-question">'+wordHtml(current.q,current.q)+'</h1>'+taskMarkup(current,true)+(current.sourceUrl?'<div class="task-source"><span>Источник</span> <a href="'+esc(current.sourceUrl)+'" target="_blank" rel="noopener">'+esc(current.sourceName||'Официальный ресурс')+' ↗</a></div>':'');
     wireAnswer(); wireDictionaryWords(box);
     setProgress(st.session.n,st.session.total);
   }
@@ -228,7 +241,7 @@
     const total=st.session?.total||10,last=st.history.slice(-total),errs={};
     last.filter(x=>!x.correct).forEach(x=>errs[x.topic]=(errs[x.topic]||0)+1);
     const top=Object.entries(errs).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
-    st.profile.active=top; if(!st.profile.cefr) st.profile.cefr='B2'; st.session=null;save();
+    st.profile.active=top; st.session=null; save();
     const box=$('#englishFullscreenContent');
     const bar=$('#englishProgressBar'); if(bar)bar.style.width='100%';
     const label=$('#englishProgressText'); if(label)label.textContent=total+' из '+total;
@@ -237,11 +250,18 @@
     $('#profileGo').onclick=()=>{closeTraining();renderProfile()};
   }
 
+  function nav(page){
+    if(typeof window.showViaPage==='function'){ window.showViaPage(page); return; }
+    document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));
+    const title=document.querySelector('#title');
+    if(title && page==='english') title.textContent='Английский';
+  }
+
   function renderProfile(){
     nav('english');const box=$('#englishTask'),errs={};
     st.history.forEach(x=>{if(!x.correct)errs[x.topic]=(errs[x.topic]||0)+1});
     const top=Object.entries(errs).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
-    box.innerHTML='<div class="english-profile"><span>МОЙ ПРОФИЛЬ</span><h3>'+(st.profile.cefr?esc(st.profile.cefr)+' — Upper-Intermediate':'Профиль формируется')+'</h3><p>Предварительная оценка; по мере накопления истории профиль будет уточняться.</p>'+(top.length?'<h4>Сейчас стоит усилить</h4><ul>'+top.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>Устойчивых повторяющихся ошибок пока немного.</p>')+'<button class="text-link" id="profileMore">Подробнее</button></div>';
+    box.innerHTML='<div class="english-profile"><span>МОЙ ПРОФИЛЬ</span><h3>'+(st.profile.cefr?esc(st.profile.cefr)+' — '+({A1:'Beginner',A2:'Elementary',B1:'Intermediate',B2:'Upper-Intermediate',C1:'Advanced',C2:'Proficient'}[st.profile.cefr]||'уровень определён'):'Профиль формируется')+'</h3><p>Предварительная оценка; по мере накопления истории профиль будет уточняться.</p>'+(top.length?'<h4>Сейчас стоит усилить</h4><ul>'+top.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>Устойчивых повторяющихся ошибок пока немного.</p>')+'<button class="text-link" id="profileMore">Подробнее</button></div>';
     $('#profileMore').onclick=()=>{const el=document.createElement('div');el.className='explain-box';el.innerHTML='<b>Подробнее</b><p>В полноценной версии здесь появится расширенная картина по Grammar, Vocabulary, Reading, Listening, Writing и contextual use. Сейчас профиль хранится локально.</p>';box.appendChild(el)};
   }
 
@@ -254,11 +274,11 @@
       let arr=(st.dict||[]).filter(x=>!q || x.unit.toLowerCase().includes(q) || (x.translation||'').toLowerCase().includes(q));
       if(f==='alpha')arr.sort((a,b)=>a.unit.localeCompare(b.unit)); else if(f!=='newest')arr=arr.filter(x=>x.status===f);
       else arr.sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
-      $('#dictList').innerHTML=arr.length?arr.map(x=>'<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p></article>').join(''):'<div class="dict-empty">Ничего не найдено.</div>';
+      $('#dictList').innerHTML=arr.length?arr.map(x=>{const i=st.dict.indexOf(x);return '<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p><div class="dict-card-actions"><button type="button" class="text-link dict-delete-filtered" data-dict-index="'+i+'">Удалить</button></div></article>'}).join(''):'<div class="dict-empty">Ничего не найдено.</div>';
     };
     $('#dictSearch').oninput=renderFiltered; $('#dictFilter').onchange=renderFiltered;
     $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const item=saveWord(v,v); item.unit=v; item.firstContext='Добавлено вручную'; item.lastClickedDay=null; item.status='new'; save(); renderDictionary();};
-    box.querySelectorAll('.dict-delete').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.dictIndex); if(st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}});
+    const dictList=$('#dictList'); if(dictList) dictList.onclick=e=>{const b=e.target.closest('.dict-delete,.dict-delete-filtered'); if(!b)return; const i=Number(b.dataset.dictIndex); if(Number.isInteger(i)&&st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}};
   }
   function renderTopic(){
     nav('english');const box=$('#englishTask');
