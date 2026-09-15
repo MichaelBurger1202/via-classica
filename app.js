@@ -2,13 +2,14 @@ const STORAGE='viaClassicaV2';
 const state=JSON.parse(localStorage.getItem(STORAGE)||'{}');
 state.checks=state.checks||{}; state.tasks=state.tasks||[]; state.links=state.links||[];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок'};
+const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок',english:'Английский'};
 function save(){const cur=JSON.parse(localStorage.getItem(STORAGE)||'{}');cur.checks=state.checks;cur.links=state.links;cur.tasks=cur.tasks||state.tasks;localStorage.setItem(STORAGE,JSON.stringify(cur));updateProgress()}
 function bindChecks(){
   $$('input[data-id]').forEach(x=>{x.checked=!!state.checks[x.dataset.id];x.addEventListener('change',()=>{state.checks[x.dataset.id]=x.checked;save()})})
 }
 function updateProgress(){const all=$$('input[data-id]');const done=all.filter(x=>x.checked).length;const p=all.length?Math.round(done/all.length*100):0;$('#pct').textContent=p+'%';$('#bar').style.width=p+'%'}
 function show(page){$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();window.scrollTo({top:0,behavior:'smooth'})}
+window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 function openDrawer(){ $('#drawer').classList.add('open'); $('#overlay').classList.add('show') }
 function closeDrawer(){ $('#drawer').classList.remove('open'); $('#overlay').classList.remove('show') }

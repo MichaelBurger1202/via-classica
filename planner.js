@@ -77,7 +77,7 @@ function render(){
  if(sum)sum.innerHTML='<span>'+used+' / '+cap+' мин</span><i><em style="width:'+Math.min(100,Math.round(used/cap*100))+'%"></em></i><small>'+Math.max(0,cap-used)+' мин свободно</small>';
  const mt=document.getElementById('monthTitle'); if(mt)mt.textContent=dt(d).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
  const mn=document.getElementById('monthNumber'); if(mn)mn.textContent=String(dt(d).getMonth()+1).padStart(2,'0');
- const badge=document.getElementById('todayBadge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
+ const badge=document.querySelector('.today-badge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
  const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),map={
   '2026-09':[['16.09','ВСОШ · Русский язык'],['21.09','«Высшая проба» · дедлайн регистрации'],['26.09','«Высшая проба» · филология'],['28.09','«Высшая проба» · филология']],
   '2026-10':[['01.10','ВСОШ · Литература'],['11.10','«Высшая проба» · завершение окна'],['31.10','Ревизия плана на ноябрь']],
