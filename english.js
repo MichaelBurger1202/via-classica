@@ -74,24 +74,32 @@
   function renderTopic(){
     const box=$('#englishTask');
     const topics=['Conditionals → выбор конструкции по смыслу','Academic collocations','Reading → main idea','Register → formal requests','Listening → gist','Translation → meaning and register','Real-life communication'];
-    box.innerHTML='<div class="english-profile"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Выбери тему</h3><input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button class="topic-choice" data-topic="'+esc(t)+'">'+esc(t)+'<span>→</span></button>').join('')+'</div><p class="topic-note">Эта тренировка отдельна от долгосрочного профиля.</p></div>';
+    box.innerHTML='<div class="english-profile"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Выбери тему</h3><input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button class="topic-choice" data-topic="'+esc(t)+'">'+esc(t)+'<span>→</span></button>').join('')+'</div><p class="topic-note">Эта тренировка отдельна от долгосрочного профиля и не изменяет его.</p></div>';
     document.querySelectorAll('.topic-choice').forEach(b=>b.onclick=()=>startManual(b.dataset.topic));
     $('#topicSearch').oninput=e=>document.querySelectorAll('.topic-choice').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(e.target.value.toLowerCase()));
   }
   function startManual(topic){
-    let pool=bank.filter(x=>x.topic===topic); if(!pool.length)pool=bank.filter(x=>x.skill===topic); if(!pool.length)pool=bank.slice(); let idx=0;
+    let pool=bank.filter(x=>x.topic===topic); if(!pool.length)pool=bank.filter(x=>x.skill===topic); if(!pool.length)pool=bank.slice();
+    let idx=0, manualDone=0, manualCorrect=0;
     const box=$('#englishTask');
     function one(){
       const t=pool[idx%pool.length];
-      box.innerHTML='<div class="task-meta"><span>'+esc(t.skill)+'</span><span>'+esc(t.topic)+'</span></div><h3>'+esc(t.q)+'</h3>'+(t.opts?'<div class="english-options">'+t.opts.map((o,i)=>'<button class="english-option" data-a="'+esc(o)+'"><span>'+String.fromCharCode(65+i)+'</span>'+esc(o)+'</button>').join('')+'</div>':'<textarea id="manualAnswer" rows="3" placeholder="Ваш ответ…"></textarea><div class="english-actions"><button class="primary" id="manualCheck">Проверить</button></div>')+'<div class="english-actions"><button class="ghost" id="stopTopic">Остановить тренировку</button></div>';
+      box.innerHTML='<div class="task-meta"><span>'+esc(t.skill)+'</span><span>'+esc(t.topic)+'</span></div><div class="manual-topic-head"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><b>'+esc(topic)+'</b></div><h3>'+esc(t.q)+'</h3>'+(t.opts?'<div class="english-options">'+t.opts.map((o,i)=>'<button class="english-option" data-a="'+esc(o)+'"><span>'+String.fromCharCode(65+i)+'</span>'+esc(o)+'</button>').join('')+'</div>':'<textarea id="manualAnswer" rows="3" placeholder="Ваш ответ…"></textarea><div class="english-actions"><button class="primary" id="manualCheck">Проверить</button></div>')+'<div class="english-actions"><button class="ghost" id="stopTopic">Остановить тренировку</button></div>';
       document.querySelectorAll('.english-option').forEach(b=>b.onclick=()=>manualCheck(t,b.dataset.a));
       $('#manualCheck')?.addEventListener('click',()=>manualCheck(t,$('#manualAnswer').value.trim()));
-      $('#stopTopic').onclick=()=>renderTopic();
+      $('#stopTopic').onclick=()=>finishManual();
     }
     function manualCheck(t,a){
       const ok=t.a?normalize(a)===normalize(t.a):!!a;
+      manualDone++; if(ok)manualCorrect++;
       box.insertAdjacentHTML('beforeend','<div class="feedback '+(ok?'good':'bad')+'"><b>'+(ok?'✓ Верно':'Ответ требует доработки')+'</b><p>'+esc(t.why)+'</p></div><div class="english-actions"><button class="primary" id="manualNext">Следующее</button><button class="ghost" id="manualStop">Остановить</button></div>');
-      $('#manualNext').onclick=()=>{idx++;one()};$('#manualStop').onclick=()=>renderTopic();
+      $('#manualNext').onclick=()=>{idx++;one()};$('#manualStop').onclick=()=>finishManual();
+    }
+    function finishManual(){
+      box.innerHTML='<div class="english-complete"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Тренировка остановлена.</h3><p>'+ (manualDone ? 'Выполнено заданий: '+manualDone+'. Правильных ответов: '+manualCorrect+'.' : 'Сегодня в этой тренировке ещё не было проверенных ответов.') +'</p><p class="topic-note">Результат этой тренировки не меняет долгосрочный профиль и не влияет на ежедневную AI-тренировку.</p><div class="english-actions"><button class="primary" id="continueTopic">Продолжить тему</button><button class="ghost" id="anotherTopic">Выбрать другую тему</button><button class="ghost" id="returnEnglish">Вернуться в английский</button></div></div>';
+      $('#continueTopic').onclick=()=>startManual(topic);
+      $('#anotherTopic').onclick=()=>renderTopic();
+      $('#returnEnglish').onclick=()=>{st.session=null;render()};
     }
     one();
   }
@@ -105,7 +113,7 @@
   window.showEnglishDictionary=()=>{nav('english');renderDictionary()};
   window.initEnglish=render;
   document.addEventListener('DOMContentLoaded',()=>{
-    document.querySelectorAll('[data-english-action]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.englishAction;if(a==='train')showEnglishTraining();if(a==='profile')showEnglishProfile();if(a==='dict')showEnglishDictionary();}));
+    document.querySelectorAll('[data-english-action]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.englishAction;if(a==='train')showEnglishTraining();if(a==='topic'){nav('english');renderTopic()}if(a==='profile')showEnglishProfile();if(a==='dict')showEnglishDictionary();}));
     render();
   });
 })();
