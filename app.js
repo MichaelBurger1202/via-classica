@@ -1,5 +1,6 @@
 const STORAGE='viaClassicaV2';
-const state=JSON.parse(localStorage.getItem(STORAGE)||'{}');
+let state;
+try { state=JSON.parse(localStorage.getItem(STORAGE)||'{}'); } catch(e) { state={}; localStorage.removeItem(STORAGE); }
 state.checks=state.checks||{}; state.tasks=state.tasks||[]; state.links=state.links||[];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок',english:'Английский'};
@@ -8,7 +9,7 @@ function bindChecks(){
   $$('input[data-id]').forEach(x=>{x.checked=!!state.checks[x.dataset.id];x.addEventListener('change',()=>{state.checks[x.dataset.id]=x.checked;save()})})
 }
 function updateProgress(){const all=$$('input[data-id]');const done=all.filter(x=>x.checked).length;const p=all.length?Math.round(done/all.length*100):0;$('#pct').textContent=p+'%';$('#bar').style.width=p+'%'}
-function show(page){$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();window.scrollTo({top:0,behavior:'smooth'})}
+function show(page){$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();window.scrollTo({top:0,behavior:'smooth'}); if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
 window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 function openDrawer(){ $('#drawer').classList.add('open'); $('#overlay').classList.add('show') }
@@ -62,6 +63,6 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=9').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=13.1').catch(() => {});
   });
 }

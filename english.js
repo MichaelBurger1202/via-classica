@@ -15,9 +15,18 @@
     {id:'c2',type:'input',skill:'Contextual use',topic:'Real-life communication',difficulty:3,context:'повседневный',q:'You are in a café. Ask politely whether you can pay by card. Write one sentence.',a:'Can I pay by card?',why:'This is a natural, polite everyday question in this context.',ex:'Can I pay by card, please?'}
   ];
 
-  let st=JSON.parse(localStorage.getItem(KEY)||'null')||{history:[],session:null,dict:[],profile:{cefr:null,mastered:[],active:[]}};
+  const DEFAULT_STATE={history:[],session:null,dict:[],profile:{cefr:null,mastered:[],active:[]}};
+  let st;
+  try { st=JSON.parse(localStorage.getItem(KEY)||'null')||DEFAULT_STATE; } catch(e) { st=DEFAULT_STATE; localStorage.removeItem(KEY); }
+  if(!st || typeof st!=='object') st=DEFAULT_STATE;
+  if(!Array.isArray(st.history)) st.history=[];
+  if(!Array.isArray(st.dict)) st.dict=[];
+  if(!st.profile || typeof st.profile!=='object') st.profile={cefr:null,mastered:[],active:[]};
+  if(!Array.isArray(st.profile.mastered)) st.profile.mastered=[];
+  if(!Array.isArray(st.profile.active)) st.profile.active=[];
+  if(st.session && (typeof st.session!=='object' || !Number.isFinite(st.session.n) || !Number.isFinite(st.session.total) || st.session.n<0 || st.session.total<1 || st.session.n>=st.session.total)) st.session=null;
   let current=null, mode='ai', manual=null;
-  function save(){localStorage.setItem(KEY,JSON.stringify(st))}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){console.warn('Via Classica English storage error',e)}}
   const DICT = {
     'if':{ru:'если',en:'used to introduce a condition'},'enough':{ru:'достаточно',en:'as much or as many as needed'},'time':{ru:'время',en:'a period during which something happens'},'tomorrow':{ru:'завтра',en:'the day after today'},'join':{ru:'присоединиться; участвовать',en:'to become a member of a group or take part in an activity'},'library':{ru:'библиотека',en:'a place where books and other resources are available for study'},'tour':{ru:'экскурсия',en:'a journey around a place to see and learn about it'},
     'have':{ru:'иметь; располагать',en:'to possess, own, or experience something'},'would':{ru:'бы; вспомогательный глагол',en:'a modal verb used in several conditional and polite constructions'},'check':{ru:'проверять',en:'to examine something to make sure it is correct or satisfactory'},'email':{ru:'электронное письмо',en:'a message sent electronically'},'before':{ru:'до; перед',en:'earlier than a particular time or event'},'sending':{ru:'отправка; отправлением',en:'the act of causing something to be sent'},
@@ -71,6 +80,7 @@
     let candidates=bank.filter(x=>!recent.includes(x.id)); if(!candidates.length)candidates=bank.slice();
     candidates.sort((a,b)=>(errors[b.topic]||0)-(errors[a.topic]||0));
     const target=candidates[0]||bank[0];
+    if(!target) throw new Error('English task bank is empty');
     const recentErr=st.history.filter(x=>x.topic===target.topic&&!x.correct).length;
     const recentGood=st.history.filter(x=>x.topic===target.topic&&x.correct).length;
     return Object.assign({},target,{difficulty:Math.max(1,Math.min(5,target.difficulty+(recentErr>1?1:recentGood>2?1:0))),_retried:false});
@@ -113,6 +123,7 @@
   }
 
   function renderTask(){
+    if(!st.session || st.session.n>=st.session.total){ finish(); return; }
     current=pick();
     const box=$('#englishFullscreenContent'); if(!box)return;
     setProgress(st.session.n,st.session.total);
@@ -123,6 +134,7 @@
   }
 
   function renderManualTask(retry=false){
+    if(!manual || !Array.isArray(manual.pool) || !manual.pool.length) { renderTopic(); return; }
     const t=manual.pool[manual.idx%manual.pool.length]; current=t;
     const box=$('#englishFullscreenContent'); if(!box)return;
     const label=$('#englishProgressText'),bar=$('#englishProgressBar'); if(label)label.textContent='Задание '+(manual.done+1)+' · до остановки'; if(bar)bar.style.width='0%';
@@ -186,7 +198,7 @@
   }
 
   function check(answer){
-    if(!current||!answer)return;
+    if(!current||!answer||($('#englishCheck')&&$('#englishCheck').disabled))return;
     const correct=evaluate(current,answer),fb=$('#englishFeedback');
     if(correct){record(true);fb.innerHTML=feedbackHtml(true,false);wireWhy();appendNext();return}
     if(!current._retried){current._retried=true;fb.innerHTML=feedbackHtml(false,true);$('#englishCheck').disabled=true;$('#retryBtn').onclick=()=>mode==='manual'?renderManualTask(true):renderRetry();return}
@@ -203,6 +215,7 @@
   }
 
   function appendNext(){
+    if(!$('#englishFeedback')) return;
     const wrap=document.createElement('div');wrap.className='english-next';
     const isDone=mode==='ai'&&st.session.n>=st.session.total;
     wrap.innerHTML='<button class="primary" id="nextEnglish">'+(isDone?'Завершить тренировку':'Дальше →')+'</button>';
@@ -244,7 +257,7 @@
       $('#dictList').innerHTML=arr.length?arr.map(x=>'<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p></article>').join(''):'<div class="dict-empty">Ничего не найдено.</div>';
     };
     $('#dictSearch').oninput=renderFiltered; $('#dictFilter').onchange=renderFiltered;
-    $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const item=saveWord(v.split(/\s+/)[0],v); item.unit=v; item.firstContext='Добавлено вручную'; item.lastClickedDay=null; item.status='new'; save(); renderDictionary();};
+    $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const item=saveWord(v,v); item.unit=v; item.firstContext='Добавлено вручную'; item.lastClickedDay=null; item.status='new'; save(); renderDictionary();};
     box.querySelectorAll('.dict-delete').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.dictIndex); if(st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}});
   }
   function renderTopic(){
