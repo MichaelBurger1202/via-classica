@@ -1,9 +1,10 @@
 (function(){
 const PKEY='viaClassicaPlannerV2';
 const SCHEDULE_FORMAT='via-classica-schedule-v1';
+const readPlannerStorage=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
 let planner={};
-try { planner=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; } catch(e) {
-  try { const raw=localStorage.getItem(PKEY); if(raw) localStorage.setItem(PKEY+'_corrupt_backup',raw); } catch(_) {}
+try { planner=JSON.parse(readPlannerStorage(PKEY)||'{}')||{}; } catch(e) {
+  const raw=readPlannerStorage(PKEY); try { if(raw) localStorage.setItem(PKEY+'_corrupt_backup',raw); } catch(_) {}
   planner={};
 }
 if(!planner || typeof planner!=='object' || Array.isArray(planner)) planner={};
@@ -17,8 +18,8 @@ const stateRef=window.__viaState || null;
 // Existing app keeps its state in a lexical variable, so we use localStorage directly.
 const getState=()=>{
   let s={};
-  try { s=JSON.parse(localStorage.getItem('viaClassicaV2')||'{}')||{}; } catch(e) {
-    try { const raw=localStorage.getItem('viaClassicaV2'); if(raw) localStorage.setItem('viaClassicaV2_corrupt_backup',raw); } catch(_) {}
+  try { s=JSON.parse(readPlannerStorage('viaClassicaV2')||'{}')||{}; } catch(e) {
+    try { const raw=readPlannerStorage('viaClassicaV2'); if(raw) localStorage.setItem('viaClassicaV2_corrupt_backup',raw); } catch(_) {}
     s={};
   }
   s.tasks=Array.isArray(s.tasks)?s.tasks.filter(t=>t&&typeof t==='object').map(t=>{const out=Object.assign({},t);out.text=String(t.text||'').trim();out.date=String(t.date||'');out.type=['move','soft','hard'].includes(t.type)?t.type:'move';const n=Number(t.minutes);out.minutes=Number.isFinite(n)?Math.max(5,Math.min(600,n)):45;out.done=!!t.done;out.plan=!!t.plan;return out}):[];
@@ -33,23 +34,42 @@ function setScheduleStatus(msg,ok=true){const el=document.getElementById('schedu
 function normalizeSchedule(raw){
  if(!raw || typeof raw!=='object') throw new Error('Файл не является объектом JSON.');
  if(raw.format && raw.format!==SCHEDULE_FORMAT) throw new Error('Неизвестный формат расписания. Нужен via-classica-schedule-v1.');
- const tasks=Array.isArray(raw.tasks)?raw.tasks:[];
- if(!tasks.length) throw new Error('В расписании нет задач.');
- const clean=tasks.map((t,i)=>{
+ let sourceTasks=Array.isArray(raw.tasks)?raw.tasks:[];
+ // Accept the weekly-plan file used by Via Classica as well as the dated task export.
+ if(!sourceTasks.length && raw.schema===SCHEDULE_FORMAT && raw.period && Array.isArray(raw.fixed_commitments) && Array.isArray(raw.self_study)){
+  const start=String(raw.period.start||''), end=String(raw.period.end||'');
+  if(!validDate(start)||!validDate(end)||end<start) throw new Error('В расписании указан неверный период.');
+  const weekdays={'Воскресенье':0,'Понедельник':1,'Вторник':2,'Среда':3,'Четверг':4,'Пятница':5,'Суббота':6};
+  const weekly=[...raw.fixed_commitments,...raw.self_study].filter(x=>x&&weekdays[x.day]!==undefined&&x.title);
+  const rotation=raw.rotation&&Array.isArray(raw.rotation.items)?raw.rotation.items:[];
+  let cur=dt(start), last=dt(end), idx=0, generated=[];
+  while(cur<=last){
+   const date=iso(cur), wd=cur.getDay(), dayName=Object.keys(weekdays).find(k=>weekdays[k]===wd);
+   weekly.filter(x=>x.day===dayName).forEach((x,i)=>generated.push({id:'weekly-'+date+'-'+i,date,text:String(x.title),type:x.type==='fixed'||x.hard?'hard':'move',minutes:Number.isFinite(Number(x.minutes))?Math.max(5,Math.min(600,Number(x.minutes))):45,done:false,plan:true,countsTowardCapacity:x.type!=='fixed'&&x.hard!==true,goal:x.priority?String(x.priority):'',steps:'',result:'',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'}));
+   if(wd===6 && rotation.length){
+    const title=rotation[idx%rotation.length];
+    generated.push({id:'rotation-'+date,date,text:String(title),type:'move',minutes:105,done:false,plan:true,goal:'Субботняя ротация олимпиадной подготовки.',steps:'Выполнить один полный вариант или соответствующий олимпиадный блок; затем кратко разобрать ошибки.',result:'Решение + журнал ошибок.',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'});
+    idx++;
+   }
+   cur.setDate(cur.getDate()+1);
+  }
+  sourceTasks=generated;
+ }
+ if(!sourceTasks.length) throw new Error('В расписании нет задач.');
+ const rawIds=sourceTasks.map(t=>String(t&&t.id||'')).filter(Boolean); if(new Set(rawIds).size!==rawIds.length) throw new Error('В расписании есть повторяющиеся ID задач.');
+ const clean=sourceTasks.map((t,i)=>{
   if(!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.date))) throw new Error('Задача №'+(i+1)+': неверная дата.');
   if(!t.text) throw new Error('Задача №'+(i+1)+': нет названия.');
-  const date=String(t.date);
-  const parsed=dt(date);
+  const date=String(t.date), parsed=dt(date);
   if(Number.isNaN(parsed.getTime()) || iso(parsed)!==date) throw new Error('Задача №'+(i+1)+': несуществующая дата.');
   const type=['move','soft','hard'].includes(t.type)?t.type:'move';
-  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date,text:String(t.text),type,minutes:(()=>{const n=Number(t.minutes);return Number.isFinite(n)?Math.max(5,Math.min(600,n)):45})(),done:false,plan:true,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
+  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date,text:String(t.text),type,minutes:(()=>{const n=Number(t.minutes);return Number.isFinite(n)?Math.max(5,Math.min(600,n)):45})(),done:false,plan:true,countsTowardCapacity:t.countsTowardCapacity!==false,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
  });
- return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta||{},events:Array.isArray(raw.events)?raw.events:[]};
+ return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta&&typeof raw.meta==='object'&&!Array.isArray(raw.meta)?raw.meta:{period:raw.period||null},events:Array.isArray(raw.events)?raw.events.filter(e=>e&&typeof e==='object').map(e=>({date:String(e.date||''),time:String(e.time||''),title:String(e.title||e.text||'Событие')})).filter(e=>validDate(e.date)):[]};
 }
 function applySchedule(raw){
  const plan=normalizeSchedule(raw), s=getState(), old=s.tasks.filter(t=>t.plan);
  const doneById=new Map(old.map(t=>[String(t.id),!!t.done]));
- const newIds=new Set(plan.tasks.map(t=>String(t.id)));
  // Preserve completion only for tasks with the same stable id; replace the generated plan wholesale.
  plan.tasks.forEach(t=>{if(doneById.get(String(t.id)))t.done=true});
  s.tasks=s.tasks.filter(t=>!t.plan).concat(plan.tasks);
@@ -66,7 +86,7 @@ async function loadScheduleText(text){
 }
 function schedulePayload(){
  const s=getState();
- return {format:SCHEDULE_FORMAT,title:planner.scheduleTitle||'Via Classica — текущий план',generatedAt:new Date().toISOString(),meta:planner.scheduleMeta||{},events:planner.scheduleEvents||[],tasks:s.tasks.filter(t=>t.plan).map(t=>({id:t.id,date:t.date,text:t.text,type:t.type,minutes:t.minutes,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||''}))};
+ return {format:SCHEDULE_FORMAT,title:planner.scheduleTitle||'Via Classica — текущий план',generatedAt:new Date().toISOString(),meta:planner.scheduleMeta||{},events:planner.scheduleEvents||[],tasks:s.tasks.filter(t=>t.plan).map(t=>({id:t.id,date:t.date,text:t.text,type:t.type,minutes:t.minutes,countsTowardCapacity:t.countsTowardCapacity!==false,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||''}))};
 }
 function exportSchedule(){
  const blob=new Blob([JSON.stringify(schedulePayload(),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='via-classica-schedule.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); setScheduleStatus('Текущий план сохранён в файл via-classica-schedule.json.',true);
@@ -130,7 +150,8 @@ const ensureSeed=()=>{
   saveState(s);planner.planVersion=2;planner.seeded=true;savePlanner();
  }
 };
-function spend(s,d){return s.tasks.filter(t=>t.date===d&&!isDone(t)).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
+function spend(s,d){return s.tasks.filter(t=>t.date===d&&!isDone(t)&&t.countsTowardCapacity!==false).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
+function nextOpenDate(from,minutes=45,limit=90){const safe=Number.isFinite(Number(minutes))?Math.max(5,Number(minutes)):45;for(let i=1;i<=limit;i++){const nd=add(from,i);if(planner.frozen[nd])continue;if(spend(getState(),nd)+safe<=capacity(nd))return nd}for(let i=1;i<=limit;i++){const nd=add(from,i);if(!planner.frozen[nd])return nd}return add(from,1)}
 function replan(){
  let s=getState(),d=today(), moved=0;
  s.tasks.filter(t=>!isDone(t)&&t.type!=='hard'&&t.date<d).sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
@@ -143,26 +164,30 @@ function render(){
  const modeEl=document.getElementById('dayMode'); if(modeEl)modeEl.value=mode;
  const cap=capacity(d), used=spend(s,d); const sum=document.getElementById('todaySummary');
  if(sum)sum.innerHTML='<span>'+used+' / '+cap+' мин</span><i><em style="width:'+Math.min(100,Math.round(used/cap*100))+'%"></em></i><small>'+Math.max(0,cap-used)+' мин свободно</small>';
+ const td=document.getElementById('todayDate'); if(td)td.textContent=dt(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
  const mt=document.getElementById('monthTitle'); if(mt)mt.textContent=dt(d).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
  const mn=document.getElementById('monthNumber'); if(mn)mn.textContent=String(dt(d).getMonth()+1).padStart(2,'0');
  const badge=document.querySelector('.today-badge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
- const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),map={
+ const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),fallback={
   '2026-09':[['16.09','ВСОШ · Русский язык'],['21.09','«Высшая проба» · дедлайн регистрации'],['26.09','«Высшая проба» · филология'],['28.09','«Высшая проба» · филология']],
   '2026-10':[['01.10','ВСОШ · Литература'],['11.10','«Высшая проба» · завершение окна'],['31.10','Ревизия плана на ноябрь']],
   '2026-11':[['30.11','Ревизия плана на декабрь']], '2026-12':[['31.12','Квартальный пересмотр плана']]};
-  events.innerHTML=(map[key]||[]).map(e=>'<div class="month-event"><time>'+e[0]+'</time><span>'+e[1]+'</span></div>').join('')||'<div class="empty">Для этого месяца пока нет зафиксированных событий.</div>';
+  const imported=Array.isArray(planner.scheduleEvents)?planner.scheduleEvents.filter(e=>e&&String(e.date||'').slice(0,7)===key):[];
+  const importedList=imported.map(e=>[String(e.time||e.date||'').slice(0,10),String(e.title||e.text||'Событие')]);
+  const list=[...(fallback[key]||[]),...importedList].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ru'));
+  events.innerHTML=list.map(e=>'<div class="month-event"><time>'+esc(e[0])+'</time><span>'+esc(e[1])+'</span></div>').join('')||'<div class="empty">Для этого месяца пока нет зафиксированных событий.</div>';
  }
  const box=document.getElementById('alerts');if(box){box.innerHTML='';if(planner.frozen[d])box.innerHTML='<div class="alert ok">💤 Сегодня заморожен. План не создаёт долга.</div>';let overdue=s.tasks.filter(t=>!isDone(t)&&t.type==='hard'&&t.date<d);if(overdue.length)box.innerHTML+='<div class="alert warn">⚠️ Жёстких задач с прошедшим сроком: '+overdue.length+'. Они не переносятся автоматически.</div>'}
  // Override existing task renderer by updating DOM directly.
- const list=document.getElementById('todayTasks'); if(list){let ts=s.tasks.filter(t=>t.date===d&&!isDone(t));list.innerHTML='';if(planner.frozen[d]){list.innerHTML='<div class="empty">День заморожен. Можно отдыхать без долга.</div>'}else if(!ts.length){list.innerHTML='<div class="empty">На сегодня нет незакрытых задач.</div>'}else ts.forEach(t=>{const r=document.createElement('div');r.className='task-item';r.innerHTML='<button class="task-check">○</button><span class="task-main"><b>'+esc(t.text)+'</b><small>'+t.minutes+' мин · '+(t.type==='hard'?'🔴 жёсткая':t.type==='soft'?'🟢 фоновая':'🟡 переносимая')+(t.replanned?' · перенесено':'')+'</small></span><button class="task-detail">подробнее</button><button class="task-more">⋯</button>';r.querySelector('.task-check').onclick=()=>{t.done=true;saveState(s);render()};r.querySelector('.task-detail').onclick=()=>{let msg=(t.goal?'ЦЕЛЬ\n'+t.goal+'\n\n':'')+(t.steps?'ЧТО ДЕЛАТЬ\n'+t.steps+'\n\n':'')+(t.result?'РЕЗУЛЬТАТ\n'+t.result:'');if(t.resource)msg+='\n\nОФИЦИАЛЬНЫЙ МАТЕРИАЛ\n'+t.resource;alert(msg||'Для этой задачи подробная инструкция пока не задана.');};r.querySelector('.task-more').onclick=()=>{const a=prompt('done = выполнено\n25 / 50 / 75 = частично\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(['25','50','75'].includes(a)){let left=Math.max(15,Math.round(t.minutes*(1-Number(a)/100)/15)*15);t.minutes=left;t.date=add(d,1)}else if(a==='skip'&&t.type!=='hard'){t.date=add(d,1)}else if(a==='delete'){s.tasks=s.tasks.filter(x=>x.id!==t.id)}saveState(s);render()};list.appendChild(r)})}
+ const list=document.getElementById('todayTasks'); if(list){let ts=s.tasks.filter(t=>t.date===d&&!isDone(t));list.innerHTML='';if(planner.frozen[d]){list.innerHTML='<div class="empty">День заморожен. Можно отдыхать без долга.</div>'}else if(!ts.length){list.innerHTML='<div class="empty">На сегодня нет незакрытых задач.</div>'}else ts.forEach(t=>{const r=document.createElement('div');r.className='task-item';r.innerHTML='<button class="task-check">○</button><span class="task-main"><b>'+esc(t.text)+'</b><small>'+t.minutes+' мин · '+(t.type==='hard'?'🔴 жёсткая':t.type==='soft'?'🟢 фоновая':'🟡 переносимая')+(t.replanned?' · перенесено':'')+'</small></span><button class="task-detail">подробнее</button><button class="task-more">⋯</button>';r.querySelector('.task-check').onclick=()=>{t.done=true;saveState(s);render()};r.querySelector('.task-detail').onclick=()=>{let msg=(t.goal?'ЦЕЛЬ\n'+t.goal+'\n\n':'')+(t.steps?'ЧТО ДЕЛАТЬ\n'+t.steps+'\n\n':'')+(t.result?'РЕЗУЛЬТАТ\n'+t.result:'');if(t.resource)msg+='\n\nОФИЦИАЛЬНЫЙ МАТЕРИАЛ\n'+t.resource;alert(msg||'Для этой задачи подробная инструкция пока не задана.');};r.querySelector('.task-more').onclick=()=>{const a=prompt('done = выполнено\n25 / 50 / 75 = частично\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(['25','50','75'].includes(a)){let left=Math.max(15,Math.round(t.minutes*(1-Number(a)/100)/15)*15);t.minutes=left;t.date=nextOpenDate(d,left)}else if(a==='skip'&&t.type!=='hard'){t.date=nextOpenDate(d,Number(t.minutes)||45)}else if(a==='delete'){s.tasks=s.tasks.filter(x=>x.id!==t.id)}saveState(s);render()};list.appendChild(r)})}
 }
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 ensureSeed(); initScheduleImport(); replan(); if(planner.scheduleTitle)setScheduleStatus('Активно расписание: '+planner.scheduleTitle+' · обновлено '+new Date(planner.scheduleUpdatedAt||Date.now()).toLocaleString('ru-RU'),true);
-document.getElementById('dayMode').addEventListener('change',e=>{planner.modes[today()]=e.target.value;savePlanner();render()});
-document.getElementById('freezeDay').addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
-document.getElementById('freezePeriod').addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}let d=start,n=0;while(d<=end&&n<90){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
-document.getElementById('replanBtn').addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
+document.getElementById('dayMode')?.addEventListener('change',e=>{planner.modes[today()]=['normal','light','heavy','vacation','festival'].includes(e.target.value)?e.target.value:'normal';savePlanner();render()});
+document.getElementById('freezeDay')?.addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
+document.getElementById('freezePeriod')?.addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}const requestedDays=Math.floor((dt(end)-dt(start))/86400000)+1;if(requestedDays>90){alert('Период слишком длинный. Максимум — 90 дней.');return}let d=start,n=0;while(d<=end){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
+document.getElementById('replanBtn')?.addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
 // Replace the old task form handler with richer version by adding a second listener; stop old handler effects by using a marker.
-document.getElementById('taskForm').addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput').value.trim();if(!text)return;s.tasks.push({id:'u'+Date.now(),text,date:today(),type:document.getElementById('taskType').value,minutes:Math.max(15,Math.min(600,Number(document.getElementById('taskMinutes').value)||45)),done:false});saveState(s);document.getElementById('taskInput').value='';render()});
+document.getElementById('taskForm')?.addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput')?.value.trim();if(!text)return;const rawType=document.getElementById('taskType')?.value||'move';const rawMinutes=Number(document.getElementById('taskMinutes')?.value)||45;const minutes=Math.max(15,Math.min(600,rawMinutes));s.tasks.push({id:'u'+Date.now(),text,date:today(),type:['move','soft','hard'].includes(rawType)?rawType:'move',minutes,done:false,plan:false});saveState(s);const input=document.getElementById('taskInput');if(input)input.value='';render()});
 render();
 })();

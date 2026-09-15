@@ -1,5 +1,6 @@
 (function(){
   const KEY='viaClassicaEnglishV1';
+  const readEnglishStorage=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
   const $=s=>document.querySelector(s);
   const esc=s=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const bank=[
@@ -9,7 +10,7 @@
     {id:'v2',type:'mcq',skill:'Vocabulary',topic:'Academic collocations',difficulty:2,context:'университет',q:'Which verb most naturally completes: “The seminar will ___ the relationship between myth and ritual”?',opts:['examine','make','do','put'],a:'examine',why:'Examine is the standard academic verb for studying a relationship or issue closely.',ex:'The paper examines the relationship between language and culture.',sourceName:'Oxford Learner’s Dictionaries',sourceUrl:'https://www.oxfordlearnersdictionaries.com/'},
     {id:'r1',type:'reading',skill:'Reading',topic:'Reading: main idea',difficulty:2,context:'академический',q:'Read: “Museums increasingly use digital catalogues not only to preserve records but also to make collections accessible to researchers abroad.” What is the main point?',opts:['Digital catalogues can widen access to museum collections.','Researchers no longer need museums.','Museums are replacing all physical collections.','Digital catalogues are mainly for tourists.'],a:'Digital catalogues can widen access to museum collections.',why:'The sentence links digital catalogues with preservation and wider researcher access.',ex:'Digital tools can make cultural collections available beyond their physical location.',sourceName:'IELTS',sourceUrl:'https://ielts.org/'},
     {id:'c1',type:'mcq',skill:'Contextual use',topic:'Register: formal requests',difficulty:2,context:'университет',q:'Which is the most appropriate opening for a formal email to a university office?',opts:['Dear Admissions Team,','Hey guys,','Hi buddy,','Yo,'],a:'Dear Admissions Team,',why:'This is an appropriate neutral-formal opening for a university office.',ex:'Dear Student Services Team,',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
-    {id:'l1',type:'mcq',skill:'Listening',topic:'Listening: gist',difficulty:2,context:'аэропорт',q:'A station announcement says a train to Rome is delayed and passengers should wait for platform information. What should passengers do?',opts:['Wait for further platform information.','Board immediately on any platform.','Leave the station.','Buy a new ticket for another city.'],a:'Wait for further platform information.',why:'The key instruction is to wait for updated platform information.',ex:'Please wait for further announcements.',sourceName:'IELTS',sourceUrl:'https://ielts.org/'},
+    {id:'l1',type:'mcq',skill:'Contextual use',topic:'Travel announcements',difficulty:2,context:'аэропорт',q:'A station announcement says a train to Rome is delayed and passengers should wait for platform information. What should passengers do?',opts:['Wait for further platform information.','Board immediately on any platform.','Leave the station.','Buy a new ticket for another city.'],a:'Wait for further platform information.',why:'The key instruction is to wait for updated platform information.',ex:'Please wait for further announcements.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
     {id:'w1',type:'input',skill:'Writing',topic:'Writing: concise academic sentences',difficulty:3,context:'академический',q:'Write one sentence: explain why primary sources are useful in historical research.',a:'',why:'A strong answer should give a clear reason and connect primary sources with direct evidence from the period being studied.',ex:'Primary sources are useful because they provide direct evidence from the period being studied.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
     {id:'t1',type:'input',skill:'Translation',topic:'Translation: meaning and register',difficulty:2,context:'университет',q:'Translate naturally: “Я хотел бы уточнить, можно ли перенести встречу.”',a:'I would like to ask whether the meeting can be rescheduled.',why:'This keeps the polite register and the meaning of asking whether the meeting can be moved.',ex:'I would like to check whether the appointment can be rescheduled.',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'},
     {id:'c2',type:'input',skill:'Contextual use',topic:'Real-life communication',difficulty:3,context:'повседневный',q:'You are in a café. Ask politely whether you can pay by card. Write one sentence.',a:'Can I pay by card?',why:'This is a natural, polite everyday question in this context.',ex:'Can I pay by card, please?',sourceName:'Cambridge Dictionary',sourceUrl:'https://dictionary.cambridge.org/'}
@@ -17,7 +18,7 @@
 
   const DEFAULT_STATE={history:[],session:null,dict:[],profile:{cefr:null,mastered:[],active:[]}};
   let st;
-  try { st=JSON.parse(localStorage.getItem(KEY)||'null')||DEFAULT_STATE; } catch(e) { const raw=localStorage.getItem(KEY); if(raw) { try { localStorage.setItem(KEY+'_corrupt_backup',raw); } catch(_){} } st=JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+  try { st=JSON.parse(readEnglishStorage(KEY)||'null')||DEFAULT_STATE; } catch(e) { const raw=readEnglishStorage(KEY); if(raw) { try { localStorage.setItem(KEY+'_corrupt_backup',raw); } catch(_){} } st=JSON.parse(JSON.stringify(DEFAULT_STATE)); }
   if(!st || typeof st!=='object') st=DEFAULT_STATE;
   if(!Array.isArray(st.history)) st.history=[];
 st.history=st.history.filter(x=>x&&typeof x==='object').map(x=>({taskId:typeof x.taskId==='string'?x.taskId:'',topic:typeof x.topic==='string'?x.topic:'',skill:typeof x.skill==='string'?x.skill:'',correct:!!x.correct,ts:Number.isFinite(Number(x.ts))?Number(x.ts):0}));
@@ -32,7 +33,7 @@ st.profile.cefr=['A1','A2','B1','B2','C1','C2'].includes(st.profile.cefr)?st.pro
   if(st.profile.cefr==='B2' && !st.profile.cefrSource){ st.profile.cefr=null; try{localStorage.setItem(KEY,JSON.stringify(st))}catch(_){} }
   if(st.session && (typeof st.session!=='object' || !Number.isFinite(st.session.n) || !Number.isFinite(st.session.total) || st.session.n<0 || st.session.total<1 || st.session.n>st.session.total || !Array.isArray(st.session.done))) st.session=null;
 if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor(st.session.total);if(st.session.n>=st.session.total)st.session=null;else st.session.done=st.session.done.filter(x=>typeof x==='string').slice(0,st.session.total);}
-  let current=null, mode='ai', manual=null;
+  let current=null, mode='ai', manual=null, retrying=false;
   function save(){try{localStorage.setItem(KEY,JSON.stringify(st));return true}catch(e){console.warn('Via Classica English storage error',e)}}
   const DICT = {
     'if':{ru:'если',en:'used to introduce a condition'},'enough':{ru:'достаточно',en:'as much or as many as needed'},'time':{ru:'время',en:'a period during which something happens'},'tomorrow':{ru:'завтра',en:'the day after today'},'join':{ru:'присоединиться; участвовать',en:'to become a member of a group or take part in an activity'},'library':{ru:'библиотека',en:'a place where books and other resources are available for study'},'tour':{ru:'экскурсия',en:'a journey around a place to see and learn about it'},
@@ -53,7 +54,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     const x=DICT[key];
     return x || {ru:'Перевод уточняется в контексте',en:'Definition will be refined from context'};
   }
-  function isSavedToday(word){return (st.dict||[]).some(x=>x.key===word.toLowerCase()&&x.lastClickedDay===dayKey())}
+  function isSavedToday(word){const key=dictKey(word);return (st.dict||[]).some(x=>x.key===key&&x.lastClickedDay===dayKey())}
   function wordHtml(text, sentence){
     const raw=String(text??''), sent=sentence||raw; let out='',last=0,m;
     WORD_RE.lastIndex=0;
@@ -70,7 +71,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     st.dict=st.dict||[];
     let item=st.dict.find(x=>x.key===key);
     if(!item){item={key,unit:word,translation:info.ru,definition:info.en,firstContext:sentence||'',addedAt:Date.now(),lastClickedDay:today,status:'new',clicks:1,reviewCount:0};st.dict.unshift(item)}
-    else {item.lastClickedDay=today;item.clicks=(item.clicks||0)+1;if(!item.firstContext)item.firstContext=sentence||'';if(!item.definition)item.definition=info.en;if(!item.translation)item.translation=info.ru;}
+    else {item.lastClickedDay=today;item.clicks=Math.max(0,Number(item.clicks)||0)+1;item.reviewCount=Math.max(0,Number(item.reviewCount)||0)+1;if(item.status==='new'&&item.clicks>=2)item.status='familiar';if(item.status==='familiar'&&item.reviewCount>=4)item.status='mastered';if(!item.firstContext)item.firstContext=sentence||'';if(!item.definition)item.definition=info.en;if(!item.translation)item.translation=info.ru;}
     save(); return item;
   }
   function showWordPopup(btn){
@@ -80,11 +81,11 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     const pop=document.createElement('div');pop.className='dict-word-popover';
     pop.innerHTML='<div class="dict-pop-head"><b>'+esc(original)+'</b><button type="button" class="dict-pop-close" aria-label="Закрыть">×</button></div><div class="dict-pop-translation">'+esc(item.translation)+'</div><div class="dict-pop-definition">'+esc(item.definition)+'</div><div class="dict-pop-context">'+esc(sentence)+'</div><div class="dict-pop-note">Добавлено в личный словарь</div>';
     const host=btn.closest('.english-question,.english-option')||btn.parentElement; host.style.position='relative';host.appendChild(pop);
-    pop.querySelector('.dict-pop-close').onclick=()=>pop.remove();
-    btn.classList.add('is-saved-today');
+    pop.querySelector('.dict-pop-close').onclick=e=>{e.preventDefault();e.stopPropagation();pop.remove()};
+    btn.classList.add('is-saved-today');btn.disabled=true;btn.setAttribute('aria-disabled','true');
   }
   function wireDictionaryWords(root){
-    (root||document).querySelectorAll('.dict-word:not(.is-saved-today)').forEach(b=>{b.onclick=e=>{e.stopPropagation();showWordPopup(b)}});
+    (root||document).querySelectorAll('.dict-word').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();if(b.disabled||b.classList.contains('is-saved-today')||isSavedToday(b.dataset.dictWord||''))return;showWordPopup(b)}});
   }
   function pick(){
     const recent=st.history.slice(-8).map(x=>x.taskId), errors={};
@@ -114,7 +115,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   function closeTraining(){
     const overlay=$('#englishFullscreen'); if(overlay)overlay.classList.remove('open');
     document.body.classList.remove('english-lock');
-    current=null; manual=null; st.session=null; save();
+    current=null; manual=null; retrying=false; save();
     if(mode==='manual')renderTopic(); else render();
   }
   function setProgress(done,total){
@@ -124,7 +125,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     else {label.textContent='Задание '+(done+1);bar.style.width='0%';}
   }
 
-  function start(total=10){mode='ai';st.session={started:Date.now(),n:0,total,done:[],topic:null};save();openTraining();renderTask();}
+  function start(total=10){mode='ai';retrying=false;st.session={started:Date.now(),n:0,total,done:[],topic:null,currentTaskId:null};save();openTraining();renderTask();}
 
   function taskMarkup(t, retry=false){
     const isChoice=t.type==='mcq'||t.type==='reading';
@@ -136,7 +137,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
 
   function renderTask(){
     if(!st.session || st.session.n>=st.session.total){ finish(); return; }
-    current=st.session.currentTaskId?bank.find(x=>x.id===st.session.currentTaskId):null; if(!current){current=pick();st.session.currentTaskId=current.id;save();}
+    current=st.session.currentTaskId?bank.find(x=>x.id===st.session.currentTaskId):null; if(!current){current=pick();st.session.currentTaskId=current.id;retrying=false;save();}
     const box=$('#englishFullscreenContent'); if(!box)return;
     setProgress(st.session.n,st.session.total);
     const title='<div class="english-task-heading"><small>AI-ТРЕНИРОВКА</small></div>';
@@ -147,7 +148,8 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
 
   function renderManualTask(retry=false){
     if(!manual || !Array.isArray(manual.pool) || !manual.pool.length) { renderTopic(); return; }
-    const t=manual.pool[manual.idx%manual.pool.length]; current=t;
+    retrying=!!retry;
+    const t=manual.pool[manual.idx%manual.pool.length]; current=Object.assign({},t);
     const box=$('#englishFullscreenContent'); if(!box)return;
     const label=$('#englishProgressText'),bar=$('#englishProgressBar'); if(label)label.textContent='Задание '+(manual.done+1)+' · до остановки'; if(bar)bar.style.width='0%';
     const header='<div class="english-task-heading"><small>ТРЕНИРОВКА ПО ТЕМЕ</small><h2>'+esc(manual.topic)+'</h2></div>';
@@ -175,9 +177,9 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   function normalize(s){return String(s||'').toLowerCase().replace(/[“”"'.,!?;:()\-]/g,' ').replace(/\s+/g,' ').trim()}
   function evaluate(task,answer){
     if(task.a) return normalize(answer)===normalize(task.a);
-    if(task.id==='w1') return /\b(primary sources|sources)\b/i.test(answer)&&/\b(evidence|information|direct|period|past|historical)\b/i.test(answer);
-    if(task.id==='t1') return /would like|wanted|want|could i/i.test(answer)&&/meeting|appointment/i.test(answer)&&/reschedul|move|change/i.test(answer);
-    if(task.id==='c2') return /pay by card|pay with (a )?card/i.test(answer);
+    if(task.id==='w1') return /\bprimary sources?\b/i.test(answer)&&/\b(evidence|information|insight|perspective|record|material|direct|firsthand|original|period|past|historical|context)\b/i.test(answer);
+    if(task.id==='t1') return /(?:would like|i['’]d like|wanted to|want to|could i|may i|can i)/i.test(answer)&&/(?:meeting|appointment)/i.test(answer)&&/(?:reschedul|move|change|postpone|put off)/i.test(answer);
+    if(task.id==='c2') return /(?:pay|payment).*(?:by|with|using)\s+(?:a\s+)?(?:credit|debit)?\s*card/i.test(answer)||/can i\s+pay\s+with\s+(?:a\s+)?card/i.test(answer);
     return !!answer;
   }
 
@@ -214,7 +216,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     if(!current||!answer||($('#englishCheck')&&$('#englishCheck').disabled))return;
     const correct=evaluate(current,answer),fb=$('#englishFeedback');
     if(correct){record(true);fb.innerHTML=feedbackHtml(true,false,answer);wireWhy();appendNext();return}
-    if(!current._retried){current._retried=true;fb.innerHTML=feedbackHtml(false,true);$('#englishCheck').disabled=true;$('#retryBtn').onclick=()=>mode==='manual'?renderManualTask(true):renderRetry();return}
+    if(!retrying){retrying=true;fb.innerHTML=feedbackHtml(false,true);$('#englishCheck').disabled=true;$('#retryBtn').onclick=()=>mode==='manual'?renderManualTask(true):renderRetry();return}
     record(false);fb.innerHTML=feedbackHtml(false,false);wireWhy();appendNext();
   }
 
@@ -238,7 +240,8 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   }
 
   function finish(){
-    const total=st.session?.total||10,last=st.history.slice(-total),errs={};
+    if(!st.session){render();return}
+    const total=st.session.total,last=st.history.slice(-total),errs={};
     last.filter(x=>!x.correct).forEach(x=>errs[x.topic]=(errs[x.topic]||0)+1);
     const top=Object.entries(errs).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
     st.profile.active=top; st.session=null; save();
@@ -277,12 +280,12 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
       $('#dictList').innerHTML=arr.length?arr.map(x=>{const i=st.dict.indexOf(x);return '<article class="dict-card"><div class="dict-card-head"><b>'+esc(x.unit)+'</b><span class="dict-status">'+esc(x.status==='mastered'?'освоено':x.status==='familiar'?'знакомо, требует практики':'новое')+'</span></div><strong>'+esc(x.translation||'—')+'</strong><div class="dict-definition">'+esc(x.definition||'')+'</div><p>'+esc(x.firstContext||'Контекст пока не сохранён.')+'</p><div class="dict-card-actions"><button type="button" class="text-link dict-delete-filtered" data-dict-index="'+i+'">Удалить</button></div></article>'}).join(''):'<div class="dict-empty">Ничего не найдено.</div>';
     };
     $('#dictSearch').oninput=renderFiltered; $('#dictFilter').onchange=renderFiltered;
-    $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const item=saveWord(v,v); item.unit=v; item.firstContext='Добавлено вручную'; item.lastClickedDay=null; item.status='new'; save(); renderDictionary();};
+    $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const key=dictKey(v); let item=st.dict.find(x=>x.key===key); if(item){item.unit=v;if(!item.firstContext)item.firstContext='Добавлено вручную';} else {item=saveWord(v,'Добавлено вручную');} save(); renderDictionary();};
     const dictList=$('#dictList'); if(dictList) dictList.onclick=e=>{const b=e.target.closest('.dict-delete,.dict-delete-filtered'); if(!b)return; const i=Number(b.dataset.dictIndex); if(Number.isInteger(i)&&st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}};
   }
   function renderTopic(){
     nav('english');const box=$('#englishTask');
-    const topics=['Conditionals','Academic collocations','Reading: main idea','Register: formal requests','Listening: gist','Writing: concise academic sentences','Translation: meaning and register','Real-life communication'];
+    const topics=['Conditionals','Academic collocations','Reading: main idea','Register: formal requests','Travel announcements','Writing: concise academic sentences','Translation: meaning and register','Real-life communication'];
     box.innerHTML='<div class="english-profile topic-picker"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Выбери тему</h3><input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button class="topic-choice" data-topic="'+esc(t)+'">'+esc(t)+'<span>→</span></button>').join('')+'</div><p class="topic-note">Эта тренировка отдельна от долгосрочного профиля.</p></div>';
     document.querySelectorAll('.topic-choice').forEach(b=>b.onclick=()=>startManual(b.dataset.topic));
     $('#topicSearch').oninput=e=>document.querySelectorAll('.topic-choice').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(e.target.value.toLowerCase()));
@@ -290,10 +293,16 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   function startManual(topic){
     mode='manual';manual={topic,pool:bank.filter(x=>x.topic===topic),idx:0,done:0};
     if(!manual.pool.length)manual.pool=bank.filter(x=>x.skill===topic);
-    if(!manual.pool.length)manual.pool=bank.slice();
+    if(!manual.pool.length){
+      const box=$('#englishTask');
+      nav('english');
+      box.innerHTML='<div class="english-profile topic-picker"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Пока нет заданий для этой темы</h3><p>Тема сохранена в каталоге, но локальный банк заданий ещё не содержит подходящих упражнений. Другой раздел можно выбрать без потери прогресса.</p><button class="primary" id="backToTopics">К темам</button></div>';
+      $('#backToTopics').onclick=renderTopic;
+      return;
+    }
     openTraining();renderManualTask(false);
   }
-  function manualNext(){manual.done++;manual.idx++;renderManualTask(false)}
+  function manualNext(){manual.done++;manual.idx++;retrying=false;renderManualTask(false)}
 
   function render(){
     const box=$('#englishTask');
