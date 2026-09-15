@@ -209,7 +209,7 @@
   function manualNext(){manual.done++;manual.idx++;renderManualTask(false)}
 
   function render(){
-    nav('english');const box=$('#englishTask');
+    const box=$('#englishTask');
     if(st.session)box.innerHTML='<div class="english-start"><span>AI-ТРЕНИРОВКА</span><h3>Продолжить сессию</h3><p>Сессия уже начата.</p><button class="primary" id="startEnglish">Продолжить</button></div>';
     else box.innerHTML='<div class="english-start"><span>AI-ТРЕНИРОВКА</span><h3>10 коротких заданий · ~7–10 минут</h3><p>Система выбирает содержание по истории выполнения. Внутри одной сессии тему вручную не переключаем.</p><button class="primary" id="startEnglish">Начать тренировку</button><button class="ghost" id="profileEnglish">Мой профиль</button></div>';
     $('#startEnglish')?.addEventListener('click',()=>st.session? (mode='ai',openTraining(),renderTask()):start(10));
