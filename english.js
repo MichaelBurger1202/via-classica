@@ -149,7 +149,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
       return '<article class="source-catalog-card"><span class="source-status-pill">'+items.length+' записей</span><span class="source-status-pill">встроено: '+embedded+'</span><span class="source-status-pill">ключ: '+answers+'</span><h4>'+esc(name)+'</h4><div class="source-stat">В тренировке: '+items.length+' · через источник: '+(items.length-embedded)+' · локально встроено: '+embedded+'</div><div class="source-catalog-actions">'+(first?'<a class="ghost source-open" href="'+esc(first.sourceUrl)+'" target="_blank" rel="noopener">Открыть источник ↗</a>':'')+'</div></article>';
     }).join('');
     const nav=FIPI_NAVIGATOR.map(x=>'<div class="source-catalog-row"><div><b>'+esc(x.title)+'</b><br><small>'+esc(x.ids)+'</small></div><a class="text-link" href="'+esc(x.url)+'" target="_blank" rel="noopener">Открыть ↗</a></div>').join('');
-    box.innerHTML='<div class="source-catalog"><div class="english-start"><span>SOURCE BANK · v13.17</span><h3>Банк реальных источников</h3><div class="source-catalog-note"><b>В тренировке доступны все 1332 записи банка.</b> Задания с проверенным содержимым показываются непосредственно как локальные карточки; остальные открываются прямо внутри тренировочной сессии через оригинальный источник. Ничего не генерируется вместо оригинального задания.</div></div><div class="source-catalog-grid">'+cards+'</div><div class="english-start"><h3>ФИПИ · Навигатор 2026</h3><div class="source-catalog-list">'+nav+'</div></div><div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
+    box.innerHTML='<div class="source-catalog"><div class="english-start"><span>SOURCE BANK · v13.18</span><h3>Банк реальных источников</h3><div class="source-catalog-note"><b>В тренировке доступны все 1332 записи банка.</b> Задания с проверенным содержимым показываются непосредственно как локальные карточки; остальные открываются прямо внутри тренировочной сессии через оригинальный источник. Ничего не генерируется вместо оригинального задания.</div></div><div class="source-catalog-grid">'+cards+'</div><div class="english-start"><h3>ФИПИ · Навигатор 2026</h3><div class="source-catalog-list">'+nav+'</div></div><div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
     $('#englishStop')?.addEventListener('click',()=>{ if(mode==='sources') closeTraining(); });
   }
 
@@ -210,7 +210,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     return false;
   }
   bank.forEach(t=>{ if(/^source-(mcq|input)$/.test(t.type) && !sourceReady(t)) t.active=false; });
-  // v13.17: every source-bank record is reachable from the training flow.
+  // v13.18: every source-bank record is reachable from the training flow.
   // Metadata-only records are presented as source-assisted tasks rather than being
   // silently excluded. We never invent question text or answers.
   const eligibleBank=()=>bank.filter(t=>t && /^source-(mcq|input|link)$/.test(t.type));
@@ -230,13 +230,13 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
           ? '<div class="english-external-answer"><label>Твой ответ</label><input id="englishAnswer" maxlength="4" placeholder="например, A"></div>'
           : '<div class="english-external-answer"><label>Твой ответ</label><input id="englishAnswer" placeholder="Введи ответ"></div>')
         : '<div class="source-selfcheck">У этого источника в банке нет проверенного ключа. Реши задание в оригинале. Завершение здесь фиксируется как «изучено», но не считается правильным ответом.</div>';
-      const frameSrc=src;
+      const frameSrc=/\.pdf(?:#|$)/i.test(src) ? 'https://docs.google.com/gview?embedded=1&url='+encodeURIComponent(src) : src;
       return (retry?'<div class="english-retry-label">Попробуй ещё раз</div>':'')+
-        '<div class="source-task-note source-task-unready"><b>Реальное задание из банка · прямо в тренировке</b><p>Оригинал задания загружается внутри этой тренировочной сессии. Via Classica не пересказывает и не генерирует его.</p></div>'+
+        '<div class="source-task-note source-task-unready"><b>Реальное задание из банка</b><p>Оригинал открывается в тренировочном окне, когда источник разрешает встраивание. Если окно пустое или не загружается, используй «Открыть источник отдельно ↗» — задание остаётся тем же, без пересказа и генерации.</p></div>'+
         '<div class="external-task-meta"><span>Задание № '+esc(t.sourceQuestion||'')+'</span><span>'+esc(t.sourceName||'Источник')+'</span></div>'+
         '<div class="source-iframe-wrap"><iframe class="source-task-iframe" src="'+esc(frameSrc)+'" title="Оригинальное задание из источника" loading="eager" referrerpolicy="no-referrer"></iframe></div>'+
         '<div class="source-iframe-actions"><a class="secondary-action source-open" href="'+esc(src)+'" target="_blank" rel="noopener">Открыть источник отдельно ↗</a></div>'+
-        '<div class="source-task-note source-task-question"><b>Номер задания: '+esc(t.sourceQuestion||'')+'</b><p>Если источник показывает несколько вопросов, выполни именно указанный номер. После решения введи свой ответ ниже — Via Classica проверит его по сохранённому ключу.</p></div>'+
+        '<div class="source-task-note source-task-question"><b>Номер задания: '+esc(t.sourceQuestion||'')+'</b><p>Если источник показывает несколько вопросов, выполни именно указанный номер. После решения введи свой ответ ниже — Via Classica проверит его по сохранённому ключу.</p><p>Слова из внешнего задания нельзя надёжно сделать кликабельными внутри iframe: нужное слово можно добавить в словарь вручную через раздел «Словарь».</p></div>'+
         answerUI+
         (known?'<div class="english-answer-bar"><button class="primary" id="englishCheck" disabled>Проверить ответ</button><button class="secondary-action" id="externalDone">Завершить без проверки →</button><button class="ghost english-stop" id="englishStop">Остановить</button></div>':'<div class="english-answer-bar"><button class="primary" id="externalDone">Завершить задание →</button><button class="ghost english-stop" id="englishStop">Остановить</button></div>')+
         '<div id="englishFeedback"></div>';
@@ -272,7 +272,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     if(!box||!current) return;
     submitted=false;
     const title='<div class="english-task-heading"><small>'+(mode==='manual'?'ТРЕНИРОВКА ПО ТЕМЕ':'АДАПТИВНАЯ ТРЕНИРОВКА')+'</small></div>';
-    const meta='<div class="task-meta"><span>'+esc(current.level||current.skill||'')+'</span><span>'+esc(current.topic||'')+'</span></div>';
+    const meta='<div class="task-meta"><span>'+esc(current.level||current.skill||'')+'</span><span>'+esc(topicLabel(current.topic||''))+'</span></div>';
     box.innerHTML=title+meta+'<h1 class="english-question">'+taskHeading(current)+'</h1>'+taskMarkup(current,retry);
     wireAnswer(); wireDictionaryWords(box);
     setProgress(st.session?.n||0,st.session?.total||0);
@@ -311,6 +311,8 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
       const input=$('#englishAnswer');
       if(input){ input.oninput=e=>{const check=$('#englishCheck'); if(check)check.disabled=!e.target.value.trim();}; }
       $('#externalDone')?.addEventListener('click',()=>{ record(null); appendNext(); });
+      const frame=document.querySelector('.source-task-iframe');
+      if(frame){ frame.addEventListener('error',()=>{ const note=document.createElement('div'); note.className='source-iframe-fallback'; note.innerHTML='<b>Источник не разрешил встраивание.</b><p>Открой оригинал отдельной вкладкой и выполни указанное задание.</p>'; frame.parentElement?.appendChild(note); }); }
       $('#englishCheck')?.addEventListener('click',()=>check($('#englishAnswer').value.trim()));
       $('#englishStop')?.addEventListener('click',()=>closeTraining());
       return;
@@ -436,10 +438,31 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     $('#dictManualAdd').onclick=()=>{const v=$('#dictManualWord').value.trim(); if(!v)return; const key=dictKey(v); let item=st.dict.find(x=>x.key===key); if(item){item.unit=v;if(!item.firstContext)item.firstContext='Добавлено вручную';} else {item=saveWord(v,'Добавлено вручную');} save(); renderDictionary();};
     const dictList=$('#dictList'); if(dictList) dictList.onclick=e=>{const b=e.target.closest('.dict-delete,.dict-delete-filtered'); if(!b)return; const i=Number(b.dataset.dictIndex); if(Number.isInteger(i)&&st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}};
   }
+  const TOPIC_LABELS={
+    'B2 Part 1':'B2 · Use of English · Выбор слова (Part 1)','B2 Part 2':'B2 · Use of English · Открытый пропуск (Part 2)','B2 Part 3':'B2 · Use of English · Словообразование (Part 3)','B2 Part 4':'B2 · Use of English · Перефразирование (Part 4)','B2 Part 5':'B2 · Reading · Multiple choice (Part 5)','B2 Part 6':'B2 · Reading · Пропуски в тексте (Part 6)','B2 Part 7':'B2 · Reading · Соотнесение текстов (Part 7)',
+    'C1 Part 1':'C1 · Use of English · Выбор слова (Part 1)','C1 Part 2':'C1 · Use of English · Открытый пропуск (Part 2)','C1 Part 3':'C1 · Use of English · Словообразование (Part 3)','C1 Part 4':'C1 · Use of English · Перефразирование (Part 4)','C1 Part 5':'C1 · Reading · Multiple choice (Part 5)','C1 Part 6':'C1 · Reading · Пропуски в тексте (Part 6)','C1 Part 7':'C1 · Reading · Соотнесение текстов (Part 7)','C1 Part 8':'C1 · Reading · Multiple matching (Part 8)',
+    'Понимание основного содержания':'Reading · Понимание основного содержания','Структурно-смысловые связи':'Reading · Структурно-смысловые связи','Полное и точное понимание':'Reading · Полное и точное понимание','Грамматические формы и конструкции':'Grammar · Грамматические формы и конструкции','Образование и использование родственных слов':'Vocabulary · Словообразование','Лексические единицы в контексте':'Vocabulary · Лексика в контексте',
+    'Тренировочный вариант №2 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2','Тренировочный вариант №2 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2','Тренировочный вариант №2 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2','Тренировочный вариант №2 2025 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2 (2025)','Открытый вариант КИМ 2026':'ФИПИ · Открытый вариант КИМ 2026','ФИПИ — чтение, открытый банк 2025/2026':'ФИПИ · Чтение · Открытый банк 2025/2026'
+  };
+  function topicLabel(topic){
+    if(TOPIC_LABELS[topic]) return TOPIC_LABELS[topic];
+    let m=String(topic||'').match(/^IELTS (Academic|General|Listening) (.+)$/);
+    if(m) return 'IELTS · '+(m[1]==='Listening'?'Listening':m[1]+' Reading')+' · '+m[2].replace(/section/i,'Раздел');
+    m=String(topic||'').match(/^ФИПИ Grammar & Vocabulary — группа .+$/);
+    if(m) return 'ФИПИ · Грамматика и лексика';
+    m=String(topic||'').match(/^ФИПИ Listening — группа .+$/);
+    if(m) return 'ФИПИ · Аудирование';
+    m=String(topic||'').match(/^ФИПИ — чтение, группа .+$/);
+    if(m) return 'ФИПИ · Чтение';
+    m=String(topic||'').match(/^ФИПИ — группа .+$/);
+    if(m) return 'ФИПИ · Тренировочные задания';
+    return String(topic||'Тренировка по теме').replace(/\bPart\b/,'Часть').replace(/\bsection\b/i,'Раздел');
+  }
+
   function renderTopic(){
     nav('english');const box=$('#englishTask');
     const topics=[...new Set(eligibleBank().map(x=>x.topic))];
-    const body=topics.length ? '<input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button class="topic-choice" data-topic="'+esc(t)+'">'+esc(t)+'<span>→</span></button>').join('')+'</div>' : '<div class="source-task-note source-task-unready"><b>Готовых заданий пока нет</b><p>Банк содержит записи источников. Полностью встроенными сейчас являются только записи с проверенным текстом; остальные проходят в source-assisted режиме через оригинал.</p></div>';
+    const body=topics.length ? '<input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button type="button" class="topic-choice" data-topic="'+esc(t)+'"><span>'+esc(topicLabel(t))+'</span><span>→</span></button>').join('')+'</div>' : '<div class="source-task-note source-task-unready"><b>Готовых заданий пока нет</b><p>Банк содержит записи источников. Полностью встроенными сейчас являются только записи с проверенным текстом; остальные проходят в source-assisted режиме через оригинал.</p></div>';
     box.innerHTML='<div class="english-profile topic-picker"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Выбери тему</h3>'+body+'<p class="topic-note">Все задания здесь взяты из источников; AI не генерирует новые вопросы.</p></div>';
     document.querySelectorAll('.topic-choice').forEach(b=>b.onclick=()=>startManual(b.dataset.topic));
     $('#topicSearch').oninput=e=>document.querySelectorAll('.topic-choice').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(e.target.value.toLowerCase()));

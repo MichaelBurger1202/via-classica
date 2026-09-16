@@ -1,0 +1,26 @@
+TEST REPORT — Via Classica v13.18
+
+Static audit
+- node --check app.js: PASS
+- node --check planner.js: PASS
+- node --check english.js: PASS
+- node --check sw.js: PASS
+- static HTML IDs: 67 unique / 67 total
+- local src/href refs: checked with query/hash stripping
+- active runtime version markers: 13.18
+- service-worker cache/registration: 13.18
+- bank records: 1332
+- unique IDs: 1332
+- HTTP(S) source URLs: 1332/1332
+- embedded/verified task records: 2
+
+Repetitio fixes verified in source
+1. Manual topic picker now displays human-readable labels instead of raw FIPI group codes / IELTS section strings.
+2. PDF source tasks use an embedded viewer attempt plus an explicit original-source fallback.
+3. iframe error fallback is present.
+4. External iframe text is not falsely claimed to be dictionary-clickable; local task text remains word-clickable.
+5. Version/cache markers are consistent at 13.18.
+
+Known limitation
+- A remote site can deny iframe embedding or external network access; no static site can override the remote server's X-Frame-Options/CSP. The UI therefore provides the original source as the authoritative fallback.
+- Full browser E2E was not claimed; this environment did not provide a stable Playwright/Chromium run.
