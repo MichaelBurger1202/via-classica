@@ -1,0 +1,14 @@
+Via Classica v13.12 — source-bank audit
+
+1. Bank JSON: valid.
+2. Count: 1281.
+3. IDs: unique.
+4. Metadata-only records remain inactive.
+5. New deliveryMode/verificationStatus/sourcePolicy fields normalized.
+6. FIPI Navigator 2026 manifest added.
+7. Source catalog UI added.
+8. AI picker still excludes unready records.
+9. No answer guessing.
+10. Copyright-safe source-link mode added for third-party materials.
+11. Service worker version bumped to 13.12.
+12. Browser interaction must be rechecked in a real browser environment; static/runtime checks below are performed locally.

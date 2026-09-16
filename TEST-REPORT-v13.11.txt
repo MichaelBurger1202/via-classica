@@ -1,0 +1,25 @@
+Via Classica v13.11 — architecture test report
+
+Static checks performed on the actual release files.
+
+1. JavaScript syntax: PASS (node --check english.js)
+2. Bank JSON parses: PASS
+3. Bank count: 1281
+4. Duplicate IDs: 0
+5. Source records: 1281
+6. Source records with embedded content: 0
+7. Metadata-only source records marked active=false: 1281/1281
+8. source-mcq answer format/key structure: checked against optionCount
+9. source-input accepted-answer arrays: non-empty for all source-input records
+10. renderTask present: PASS
+11. renderManualTask present: PASS
+12. Retry uses the shared renderer: PASS
+13. Embedded source renderer routes instructions/context/passage/prompt/options through wordHtml(): PASS
+14. Metadata-only source records cannot enter the picker: PASS (runtime sourceReady gate + active=false in bank)
+15. PWA/cache version references: 13.11
+
+Browser smoke test:
+Chromium headless was attempted, but the container Chromium process did not complete within the available runtime and was terminated. Therefore no claim of a successful visual browser smoke test is made.
+
+Important status:
+The architecture is now ready for the next step, but the current 1281 source records are intentionally not active because they do not yet contain verified embedded task text. This prevents the application from presenting a source link as if it were an in-app clickable-word task.

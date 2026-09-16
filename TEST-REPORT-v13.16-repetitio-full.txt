@@ -1,0 +1,63 @@
+Via Classica v13.16 — FULL REPETITIO
+Date: 2026-09-16
+Basis: actual v13.15 release archive, then modified release tree.
+
+1. JavaScript syntax
+PASS — node --check on app.js, planner.js, english.js, sw.js.
+
+2. Bank integrity
+PASS — 1332 records; 0 duplicate IDs; all records have HTTP(S) source URLs; 2 records contain embedded content; 1330 do not.
+
+3. Source truthfulness
+FIXED — source-assisted records are no longer represented as correct when the user merely marks them completed. Neutral completion is recorded with correct=null.
+
+4. Adaptive statistics
+FIXED — null/neutral external completions are excluded from wrong-answer counts and topic accuracy calculations.
+
+5. English terminology
+FIXED — UI no longer calls the deterministic local training flow “AI” when no AI service is running; it is labeled adaptive.
+
+6. Source catalog
+FIXED — catalog now distinguishes embedded vs source-assisted records and no longer uses the ambiguous “in training flow” wording.
+
+7. Version consistency
+FIXED — index.html, app.js, planner.js, english.js, sw.js, manifest.webmanifest all use release/cache version 13.16.
+
+8. PWA cache wiring
+PASS — service worker cache key and local asset query strings are 13.16.
+
+9. Planner factual-risk audit
+FIXED — removed unverified exact HSE/VSOSH attempt dates from static month fallback. Kept HSE registration deadline and 1st-tour window.
+
+10. Planner persistence
+PASS — generated plan tasks remain owned by planner.js; app.js save() does not overwrite planner task state.
+
+11. Schedule import/export
+PASS — both dated task exports and weekly-plan schema are accepted; IDs and dates are validated; generated plan replaces only plan tasks.
+
+12. LocalStorage corruption handling
+PASS — app, planner and English state back up corrupt raw payloads before resetting.
+
+13. Navigation / IDs
+PASS — 48 unique static HTML IDs; all navigation page targets exist.
+
+14. Link safety
+PASS — custom link archive accepts only http/https URLs after normalization; rendered URLs are HTML-escaped.
+
+15. Dictionary behavior
+PASS — words are clickable; a word is disabled for the rest of the same day after first click.
+
+16. No-repeat logic
+PASS — task IDs already present in history/session are blocked until the bank is exhausted; recycling only occurs after all eligible records have been seen.
+
+17. Manual topic training
+PASS — topic pool uses the same source bank and does not alter the long-term profile by itself.
+
+18. Mobile layout
+PASS static review — responsive rules exist at 900/800/680/620px; training answer bar becomes sticky on narrow screens.
+
+19. Current limitation (not an error hidden by this audit)
+KNOWN — only 2 of 1332 records currently contain fully embedded verified task text. The remaining 1330 are source-assisted/metadata records. They are not falsely presented as embedded tasks. Full in-site embedding of third-party protected text requires source content/permission; the release therefore preserves original-source access instead of inventing or silently copying missing text.
+
+20. Release decision
+PASS — v13.16 is the audited corrected release tree. No claim is made that all 1332 records are fully embedded.

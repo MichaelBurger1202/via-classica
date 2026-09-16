@@ -1,0 +1,102 @@
+{
+  "schema": "via-classica-fipi-navigator-2026-v1",
+  "generated": "2026-09-16",
+  "source": "ФИПИ — Навигатор самостоятельной подготовки к ЕГЭ-2026",
+  "base": "https://ege.fipi.ru/bank/index.php?proj=4B53A6CB75B0B5E1427E596EB4931A2A",
+  "navigator": [
+    {
+      "section": "reading-main-content",
+      "zids": [
+        "7B862D",
+        "A5c700",
+        "88ec68",
+        "4DA94c",
+        "D71294"
+      ],
+      "qid": [
+        "F719D4",
+        "A22095",
+        "72c51A",
+        "4928F1",
+        "A76eD2"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-2-chtenie.pdf"
+    },
+    {
+      "section": "reading-structure",
+      "qids": [
+        "5B4eD1",
+        "AAF849",
+        "6c0102",
+        "6191c2",
+        "D8D31A"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-2-chtenie.pdf"
+    },
+    {
+      "section": "grammar",
+      "zids": [
+        "B8DB31",
+        "591c97",
+        "8ABBe7",
+        "6c2c9e",
+        "74eD7B"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-3-grammatika-i-leksika.pdf"
+    },
+    {
+      "section": "word-formation",
+      "zids": [
+        "107FDc",
+        "D8e12e",
+        "F87670",
+        "2251F0",
+        "4c1cc1"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-3-grammatika-i-leksika.pdf"
+    },
+    {
+      "section": "lexical-usage",
+      "zids": [
+        "75D243",
+        "46Dc86",
+        "6eBDDB",
+        "e68555",
+        "485615"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-3-grammatika-i-leksika.pdf"
+    },
+    {
+      "section": "training-variant-2-listening",
+      "qids": [
+        "1014B9",
+        "95F359"
+      ],
+      "groups": [
+        "3A69DB"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/"
+    },
+    {
+      "section": "training-variant-2-reading",
+      "qids": [
+        "9BB643",
+        "4A42A2"
+      ],
+      "groups": [
+        "cB588B"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/"
+    },
+    {
+      "section": "training-variant-2-grammar",
+      "groups": [
+        "3FF375",
+        "B90F63",
+        "7A0eFF"
+      ],
+      "url": "https://doc.fipi.ru/navigator-podgotovki/navigator-ege/2026/aja-3-grammatika-i-leksika.pdf"
+    }
+  ],
+  "status": "reference-manifest; IDs are not treated as embedded tasks until content is directly verified."
+}

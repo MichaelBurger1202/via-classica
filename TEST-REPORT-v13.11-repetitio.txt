@@ -1,0 +1,39 @@
+Via Classica v13.11 — repetitio audit report
+
+Audit basis: actual extracted v13.11 release files.
+
+PASS / FIXED
+1. JavaScript syntax: english.js, app.js, planner.js, sw.js all pass node --check.
+2. HTML IDs: no duplicate IDs detected by HTML parser.
+3. Local HTML references: no missing local href/src targets detected.
+4. Bank JSON parses successfully.
+5. Bank count field matches actual item count: 1281.
+6. Bank IDs are unique: 0 duplicates.
+7. All 1281 source records are explicitly inactive until verified embedded content exists.
+8. AI picker now filters through eligibleBank(); inactive/unready source records cannot leak into training.
+9. Manual topic picker now filters through eligibleBank().
+10. sourceReady now requires actual visible embedded content for source-mcq and source-input.
+11. Six FIPI source-input records that lacked answerFormat were normalized to answerFormat=text.
+12. AI session resume reuses currentTaskId when that task remains eligible.
+13. English local history/dictionary/profile containers are normalized against malformed storage shapes.
+14. Service-worker registration query is aligned to v13.11; no stale 13.6.2 registration reference remains in executable files.
+15. Topic mode explicitly reports that no eligible tasks exist rather than presenting an empty selector.
+16. Embedded source renderer routes instructions/context/passage/prompt/options through wordHtml().
+17. Retry uses the shared renderer.
+
+IMPORTANT LIMITATION
+18. Browser smoke test could not be completed in this environment: Chromium was launched both against file:// and a local HTTP server, but the process did not produce DOM output within the timeout and had to be terminated. Therefore browser-level click/render/PWA claims are not marked PASS.
+
+BANK STATUS
+19. Embedded source content count remains 0/1281. This is intentional and correct for this stage. No source record is activated merely because metadata and answer keys exist.
+20. Consequently the production training picker currently has 0 eligible source tasks. The next planned step is verified real-text ingestion, followed by activation and end-to-end testing.
+
+NO INVENTED ERRORS
+Only concrete issues found during this pass were changed; no cosmetic or hypothetical issues were counted as errors.
+
+
+SECONDARY 10-CYCLE AUDIT
+- Re-ran syntax, bank integrity, DOM IDs, local resource references, PWA version alignment, picker/session guards, dictionary wiring, planner import/export, and adaptive selection checks. All passed.
+- Additional data check: 920 IELTS UP records have no embedded answer key in the catalog. They remain inactive; this is treated as an ingestion gap, not silently repaired with guesses.
+- Browser smoke test remains unavailable because Chromium does not produce DOM output in this environment.
+- No fabricated source content or answer keys were added.

@@ -1,0 +1,28 @@
+Via Classica v13.14 — repetitio12
+Date: 2026-09-16
+Basis: actual v13.14 release files.
+
+PASS — 12 audit cycles:
+1. Bank count/integrity.
+2. Unique task IDs.
+3. HTML IDs.
+4. Local href/src references.
+5. Source status transitions: 49 external inactive; 2 embedded active.
+6. Embedded content/answer schema.
+7. FIPI provenance and official source URL presence.
+8. Release version consistency (13.14; no stale 13.13/13.12 in checked release files).
+9. JavaScript syntax: english.js, app.js, planner.js, sw.js.
+10. PWA cache/version wiring.
+11. Source eligibility guard: only source-mcq/source-input with verified content can train.
+12. Source URL presence.
+
+Real issue found during this audit and fixed:
+- Manifest had no release version field after the version bump; fixed by adding version=13.14.
+- A temporary failed sync attempt corrupted english.js while replacing the inline bank; restored the original v13.13 release file and re-synced the bank using JSON raw_decode. Final node --check passes.
+
+No invented errors counted.
+
+Current ingestion state:
+- 1332 records total.
+- 2 real FIPI tasks are now embedded and active.
+- Remaining external/metadata-only FIPI tasks remain blocked from training until their actual content can be verified.

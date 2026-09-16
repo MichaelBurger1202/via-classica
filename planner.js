@@ -169,8 +169,8 @@ function render(){
  const mn=document.getElementById('monthNumber'); if(mn)mn.textContent=String(dt(d).getMonth()+1).padStart(2,'0');
  const badge=document.querySelector('.today-badge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
  const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),fallback={
-  '2026-09':[['16.09','ВСОШ · Русский язык'],['21.09','«Высшая проба» · дедлайн регистрации'],['26.09','«Высшая проба» · филология'],['28.09','«Высшая проба» · филология']],
-  '2026-10':[['01.10','ВСОШ · Литература'],['11.10','«Высшая проба» · завершение окна'],['31.10','Ревизия плана на ноябрь']],
+  '2026-09':[['21.09','«Высшая проба» · дедлайн регистрации (14:00 МСК)']],
+  '2026-10':[['11.10','«Высшая проба» · окончание окна 1 тура'],['31.10','Ревизия плана на ноябрь']],
   '2026-11':[['30.11','Ревизия плана на декабрь']], '2026-12':[['31.12','Квартальный пересмотр плана']]};
   const imported=Array.isArray(planner.scheduleEvents)?planner.scheduleEvents.filter(e=>e&&String(e.date||'').slice(0,7)===key):[];
   const importedList=imported.map(e=>[String(e.time||e.date||'').slice(0,10),String(e.title||e.text||'Событие')]);

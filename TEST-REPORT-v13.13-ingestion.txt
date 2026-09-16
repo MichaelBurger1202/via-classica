@@ -1,0 +1,15 @@
+Via Classica v13.13 — ingestion report
+
+1. Base archive: v13.12.
+2. Bank before ingestion: 1281.
+3. New official FIPI external records: 49.
+4. Bank after ingestion: 1330.
+5. FIPI records have exact official ege.fipi.ru qid/zid/group URLs or the official FIPI 2026 open-KIM package URL.
+6. No generated FIPI question text.
+7. No guessed FIPI answers.
+8. External records are not eligible for the automatic picker.
+9. sourceReady now rejects all non-embedded source-link records.
+10. Source catalog reports embedded vs external vs trainable counts separately.
+11. JS/JSON checks are required before release.
+
+Known limitation: direct container DNS access to doc.fipi.ru/ege.fipi.ru is unavailable in this environment, while official FIPI pages and navigator documents are web-accessible. Therefore this pass ingests verified official references, not copied bank content.

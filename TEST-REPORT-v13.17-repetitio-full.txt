@@ -1,0 +1,64 @@
+Via Classica v13.17 — FULL REPETITIO / RELEASE INTEGRITY
+Date: 2026-09-16
+
+Scope
+- Audited the actual v13.16-final2 release tree.
+- Cross-checked continuity against the v13.8 archive and the intermediate release documentation retained in the tree.
+- v13.17 was produced by modifying the audited v13.16 tree in place; no runtime files were copied from unrelated historical releases.
+
+A. Release continuity
+PASS — v13.8 baseline inspected.
+PASS — release documentation for v13.8, v13.8.1, v13.8.2, v13.9.2, v13.11, v13.12, v13.13, v13.14, v13.15 and v13.16 is retained.
+PASS — current runtime tree contains the accumulated app/planner/English/PWA files rather than a partial historical subset.
+PASS — historical README/test reports are documentation only and are not loaded as runtime assets.
+
+B. Runtime syntax
+PASS — node --check app.js
+PASS — node --check planner.js
+PASS — node --check english.js
+PASS — node --check sw.js
+
+C. HTML / asset integrity
+PASS — 67 static HTML IDs; 67 unique.
+PASS — all local src/href references in index.html resolve to files in the release tree.
+PASS — runtime asset query strings use 13.17.
+PASS — manifest version is 13.17.
+PASS — service-worker cache name is 13.17.
+PASS — service-worker registration uses 13.17.
+PASS — no stale 13.16 runtime version markers remain in active files.
+
+D. English bank
+PASS — 1332 records.
+PASS — type distribution: 1168 source-mcq, 115 source-input, 49 source-link.
+PASS — 1332 unique IDs.
+PASS — 1332/1332 records have HTTP(S) source URLs.
+PASS — 2 locally embedded and verified records.
+PASS — 1330 source-assisted records.
+PASS — no generated question text or fabricated answer keys.
+
+E. Repetitio fixes in v13.17
+FIXED — adaptive error-pressure bug: the picker previously used a truthiness check and therefore treated neutral source-assisted completions (correct=null) as errors. It now counts only explicit correct=false results.
+FIXED — stale "AI training" label in the English entry point. The local deterministic flow is now labelled "АДАПТИВНАЯ ТРЕНИРОВКА".
+FIXED — stale 13.16 labels/comments in active runtime files.
+FIXED — PWA cache/query version advanced coherently to 13.17.
+
+F. Preserved v13.16 functionality
+PASS — source-assisted records remain reachable through the complete 1332-record eligible bank.
+PASS — source-assisted records render the original source in the training screen with an external-open fallback.
+PASS — verified source answer keys can be checked without inventing task text.
+PASS — neutral source completion is stored as correct=null.
+PASS — null results do not enter wrong-answer/topic-error statistics.
+PASS — no-repeat blocks previously seen task IDs until the eligible bank is exhausted, then allows recycling.
+PASS — manual topic training uses the same bank and does not create long-term correct/incorrect results merely by browsing a topic.
+PASS — localStorage normalization/corruption backup retained.
+PASS — planner persistence and schedule import/export logic retained.
+PASS — dictionary same-day click lock retained.
+PASS — responsive/mobile training layout retained.
+
+G. Source-faithfulness limitation
+KNOWN / NOT AN ERROR — only two bank records have complete verified task text stored locally. The other 1330 records contain source metadata rather than reusable full task content. They are therefore source-assisted, not falsely labelled as locally embedded. This release does not fabricate or reconstruct missing copyrighted content.
+
+H. Final release decision
+PASS — v13.17 is internally coherent as a continuation of v13.8 through v13.16.
+PASS — no runtime file was taken from an older broken intermediate release after the v13.16 base was selected.
+PASS — archive is suitable as the next installable Via Classica release, subject to the source-assisted limitation above.
