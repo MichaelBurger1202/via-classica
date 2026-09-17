@@ -1,4 +1,4 @@
-TEST REPORT — Via Classica v13.18
+TEST REPORT — Via Classica v13.19
 
 Static audit
 - node --check app.js: PASS
@@ -7,8 +7,8 @@ Static audit
 - node --check sw.js: PASS
 - static HTML IDs: 67 unique / 67 total
 - local src/href refs: checked with query/hash stripping
-- active runtime version markers: 13.18
-- service-worker cache/registration: 13.18
+- active runtime version markers: 13.19
+- service-worker cache/registration: 13.19
 - bank records: 1332
 - unique IDs: 1332
 - HTTP(S) source URLs: 1332/1332
@@ -19,7 +19,7 @@ Repetitio fixes verified in source
 2. PDF source tasks use an embedded viewer attempt plus an explicit original-source fallback.
 3. iframe error fallback is present.
 4. External iframe text is not falsely claimed to be dictionary-clickable; local task text remains word-clickable.
-5. Version/cache markers are consistent at 13.18.
+5. Version/cache markers are consistent at 13.19.
 
 Known limitation
 - A remote site can deny iframe embedding or external network access; no static site can override the remote server's X-Frame-Options/CSP. The UI therefore provides the original source as the authoritative fallback.

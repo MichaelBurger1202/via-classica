@@ -149,7 +149,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
       return '<article class="source-catalog-card"><span class="source-status-pill">'+items.length+' записей</span><span class="source-status-pill">встроено: '+embedded+'</span><span class="source-status-pill">ключ: '+answers+'</span><h4>'+esc(name)+'</h4><div class="source-stat">В тренировке: '+items.length+' · через источник: '+(items.length-embedded)+' · локально встроено: '+embedded+'</div><div class="source-catalog-actions">'+(first?'<a class="ghost source-open" href="'+esc(first.sourceUrl)+'" target="_blank" rel="noopener">Открыть источник ↗</a>':'')+'</div></article>';
     }).join('');
     const nav=FIPI_NAVIGATOR.map(x=>'<div class="source-catalog-row"><div><b>'+esc(x.title)+'</b><br><small>'+esc(x.ids)+'</small></div><a class="text-link" href="'+esc(x.url)+'" target="_blank" rel="noopener">Открыть ↗</a></div>').join('');
-    box.innerHTML='<div class="source-catalog"><div class="english-start"><span>SOURCE BANK · v13.18</span><h3>Банк реальных источников</h3><div class="source-catalog-note"><b>В тренировке доступны все 1332 записи банка.</b> Задания с проверенным содержимым показываются непосредственно как локальные карточки; остальные открываются прямо внутри тренировочной сессии через оригинальный источник. Ничего не генерируется вместо оригинального задания.</div></div><div class="source-catalog-grid">'+cards+'</div><div class="english-start"><h3>ФИПИ · Навигатор 2026</h3><div class="source-catalog-list">'+nav+'</div></div><div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
+    box.innerHTML='<div class="source-catalog"><div class="english-start"><span>SOURCE BANK · v13.19</span><h3>Банк реальных источников</h3><div class="source-catalog-note"><b>В тренировке доступны все 1332 записи банка.</b> Задания с проверенным содержимым показываются непосредственно как локальные карточки; остальные открываются прямо внутри тренировочной сессии через оригинальный источник. Ничего не генерируется вместо оригинального задания.</div></div><div class="source-catalog-grid">'+cards+'</div><div class="english-start"><h3>ФИПИ · Навигатор 2026</h3><div class="source-catalog-list">'+nav+'</div></div><div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
     $('#englishStop')?.addEventListener('click',()=>{ if(mode==='sources') closeTraining(); });
   }
 
@@ -210,7 +210,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     return false;
   }
   bank.forEach(t=>{ if(/^source-(mcq|input)$/.test(t.type) && !sourceReady(t)) t.active=false; });
-  // v13.18: every source-bank record is reachable from the training flow.
+  // v13.19: every source-bank record is reachable from the training flow.
   // Metadata-only records are presented as source-assisted tasks rather than being
   // silently excluded. We never invent question text or answers.
   const eligibleBank=()=>bank.filter(t=>t && /^source-(mcq|input|link)$/.test(t.type));
@@ -305,7 +305,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   }
   function wireAnswer(){
     const external=isExternalSourceTask(current);
-    const isChoice=current.type==='mcq'||current.type==='reading'||current.type==='source-mcq';
+    const isChoice=current.type==='mcq'||current.type==='reading'||(current.type==='source-mcq'&&current.answerFormat==='letter');
     let selected='';
     if(external){
       const input=$('#englishAnswer');
@@ -439,8 +439,8 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     const dictList=$('#dictList'); if(dictList) dictList.onclick=e=>{const b=e.target.closest('.dict-delete,.dict-delete-filtered'); if(!b)return; const i=Number(b.dataset.dictIndex); if(Number.isInteger(i)&&st.dict[i]){st.dict.splice(i,1);save();renderDictionary();}};
   }
   const TOPIC_LABELS={
-    'B2 Part 1':'B2 · Use of English · Выбор слова (Part 1)','B2 Part 2':'B2 · Use of English · Открытый пропуск (Part 2)','B2 Part 3':'B2 · Use of English · Словообразование (Part 3)','B2 Part 4':'B2 · Use of English · Перефразирование (Part 4)','B2 Part 5':'B2 · Reading · Multiple choice (Part 5)','B2 Part 6':'B2 · Reading · Пропуски в тексте (Part 6)','B2 Part 7':'B2 · Reading · Соотнесение текстов (Part 7)',
-    'C1 Part 1':'C1 · Use of English · Выбор слова (Part 1)','C1 Part 2':'C1 · Use of English · Открытый пропуск (Part 2)','C1 Part 3':'C1 · Use of English · Словообразование (Part 3)','C1 Part 4':'C1 · Use of English · Перефразирование (Part 4)','C1 Part 5':'C1 · Reading · Multiple choice (Part 5)','C1 Part 6':'C1 · Reading · Пропуски в тексте (Part 6)','C1 Part 7':'C1 · Reading · Соотнесение текстов (Part 7)','C1 Part 8':'C1 · Reading · Multiple matching (Part 8)',
+    'B2 Part 1':'B2 · Use of English · Выбор слова','B2 Part 2':'B2 · Use of English · Открытый пропуск','B2 Part 3':'B2 · Use of English · Словообразование','B2 Part 4':'B2 · Use of English · Перефразирование','B2 Part 5':'B2 · Reading · Выбор ответа','B2 Part 6':'B2 · Reading · Пропуски в тексте','B2 Part 7':'B2 · Reading · Соотнесение текстов',
+    'C1 Part 1':'C1 · Use of English · Выбор слова','C1 Part 2':'C1 · Use of English · Открытый пропуск','C1 Part 3':'C1 · Use of English · Словообразование','C1 Part 4':'C1 · Use of English · Перефразирование','C1 Part 5':'C1 · Reading · Выбор ответа','C1 Part 6':'C1 · Reading · Пропуски в тексте','C1 Part 7':'C1 · Reading · Соотнесение текстов','C1 Part 8':'C1 · Reading · Соотнесение информации',
     'Понимание основного содержания':'Reading · Понимание основного содержания','Структурно-смысловые связи':'Reading · Структурно-смысловые связи','Полное и точное понимание':'Reading · Полное и точное понимание','Грамматические формы и конструкции':'Grammar · Грамматические формы и конструкции','Образование и использование родственных слов':'Vocabulary · Словообразование','Лексические единицы в контексте':'Vocabulary · Лексика в контексте',
     'Тренировочный вариант №2 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2','Тренировочный вариант №2 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2','Тренировочный вариант №2 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2','Тренировочный вариант №2 2025 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2 (2025)','Открытый вариант КИМ 2026':'ФИПИ · Открытый вариант КИМ 2026','ФИПИ — чтение, открытый банк 2025/2026':'ФИПИ · Чтение · Открытый банк 2025/2026'
   };

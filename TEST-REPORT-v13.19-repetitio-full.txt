@@ -1,0 +1,33 @@
+Via Classica v13.19 — repetitio full report
+
+Source: v13.18 REAL archive.
+
+STATIC / TECHNICAL
+- JavaScript syntax: app.js PASS; planner.js PASS; english.js PASS; sw.js PASS.
+- Static HTML ids: 67 total; 67 unique.
+- Local index.html references: PASS.
+- Source bank: 1332 records; 1332 unique IDs; 1332/1332 records have HTTP(S) source URLs.
+- Active runtime stale version markers (13.17/13.18): NONE.
+
+FIXES IN v13.19
+1. Fixed source-mcq text-answer handling: answerFormat=text now uses textarea/input validation rather than choice-selection logic; the check button becomes enabled when a text answer is entered. answerFormat=letter remains choice-based.
+2. Removed Part-number jargon from visible B2/C1 topic labels while preserving internal topic IDs and exact bank semantics. No unsupported pedagogical topics were fabricated.
+3. Version/cache markers updated to 13.19 in active runtime.
+
+BROWSER E2E (CDP / remote-debugging Chromium, no Playwright)
+- Chromium: Chrome/144.0.7559.96.
+- Browser DOM boot: PASS.
+- English page: PASS.
+- Adaptive training opens: PASS.
+- Adaptive source-assisted task renders iframe, answer control, check/finish/stop controls: PASS structurally.
+- Manual topic picker renders human-readable B2/C1 labels: PASS.
+- Embedded FIPI source-mcq text-answer task opens with textarea: PASS.
+- Text-answer input enables «Проверить ответ» after input: PASS (verified by DOM event path).
+- Embedded dictionary interaction: word controls and add-to-dictionary flow present; external cross-origin iframe words remain intentionally not scriptable by the parent page.
+- Source catalog is non-empty and renders source cards: PASS.
+
+E2E ENVIRONMENT LIMITATION
+- Chromium in this harness blocks direct local HTTP navigation (ERR_BLOCKED_BY_ADMINISTRATOR). Therefore the E2E was run through CDP Page.setDocumentContent with local CSS/JS inlined and storage mocked. This validates real Chromium DOM/event execution, but it is not a pristine origin-navigation test. External source iframe contents cannot be asserted when the harness blocks their network load.
+
+CONCLUSION
+v13.19 passes the available static checks and the CDP browser regression suite. No claim is made that blocked external source pages were visually verified inside the iframe.
