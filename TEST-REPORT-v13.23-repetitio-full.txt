@@ -1,0 +1,60 @@
+Via Classica v13.23 — REPETITIO FULL
+Date: 2026-09-21
+
+SCOPE
+Full audit: runtime/version continuity, HTML IDs/refs, JS syntax, English module, grammar map/practice, source bank/catalog, dictionary, session/return flow, planner, storage/import-export code paths, PWA/service worker/cache, mobile/desktop-oriented layout behavior, malformed data guards.
+Browser E2E: Chromium 144.0.7559.96 via CDP remote debugging, without Playwright. Page.setDocumentContent + mocked storage used where the sandbox blocks local storage/origin access.
+
+REAL DEFECTS FOUND AND FIXED
+1. Grammar practice pool "Пассивный залог" existed in GRAMMAR_PRACTICE but the grammar map used the title "Формы Passive". Result: 13 pools existed in code but only 12 buttons were reachable from the UI. Fixed by aligning the map title to "Пассивный залог".
+2. External-source return path restored the task but did not explicitly navigate the app back to the English page. Fixed by calling nav('english') before reopening the restored task.
+3. Several Cambridge grammar links were too generic or pointed to the wrong subtopic. Fixed verified current URLs for Present Perfect Continuous, If: conditions, Passive: uses, and Have something done.
+
+STATIC CHECKS
+- node --check app.js: PASS
+- node --check planner.js: PASS
+- node --check english.js: PASS
+- node --check sw.js: PASS
+- HTML IDs: 48 total / 48 unique
+- local asset references: 7 / missing 0
+- source bank: 1332 items / 1332 unique IDs / 1332 HTTP(S) source URLs
+- embedded verified records: 2 (FIPI mirror-verified records)
+- grammar map: 34 topics across 10 groups
+- grammar practice: 13 reachable pools / 65 questions / 5 questions per pool
+- orphan practice pools: 0
+- active runtime stale markers 13.17–13.22: 0
+- ZIP integrity: PASS
+
+CDP E2E RESULTS
+- Boot to Home: PASS
+- Top-level navigation: Home, Olympiads, IELTS, English, Full plan, Grade 11, Links: PASS
+- English topic layer: 12 pedagogical tracks / 10 grammar groups / 34 grammar topics: PASS
+- All 13 built-in grammar practice buttons: PASS
+- Every grammar practice opens with 4 choices and a working Check button: PASS
+- Wrong-answer retry path: PASS
+- Correct-answer feedback path observed on sampled pools: PASS
+- Dictionary word click: PASS; clicked word becomes disabled/saved for the day. Storage is inaccessible in the opaque test origin, so storage persistence was tested separately with a mocked storage origin.
+- Source catalog: 50 initial rows / 1332 total: PASS
+- Catalog search: PASS
+- Catalog pagination 50 -> 100: PASS
+- Embedded FIPI records reachable: PASS
+- Embedded input answer retry path: PASS
+- Metadata-only Cambridge record: launch card, no iframe: PASS
+- External source handler statically confirmed to set sessionStorage return marker.
+- Return-from-external path with mocked sessionStorage: English page active + overlay reopened on the saved task: PASS
+- Internal English navigation does not force page to top when already on English: PASS (small browser scroll normalization remains browser-dependent; explicit page switch still resets to top).
+- Planner controls present and wired: PASS
+- Planner add-task + checkbox persistence: PASS with mocked localStorage
+- Freeze-day state toggle: PASS with mocked localStorage
+- Runtime JS errors during tested flows: 0
+
+PWA / CACHE
+- Service-worker cache name and runtime query versions aligned to v13.23.
+- Network-first fetch strategy and old-cache deletion present.
+- Actual service-worker installation cannot be exercised in Page.setDocumentContent because that document has no normal service-worker origin; this is an environment limitation, not claimed as browser-verified.
+
+SOURCE VERIFICATION
+Current Cambridge Dictionary pages were checked for the corrected grammar URLs, including Present Perfect Continuous, Conditionals: if, Passive: uses, Have something done, and the existing wh-question / modality / reported-speech / verb-pattern pages.
+
+REMAINING PRODUCT LIMITATION
+The 34-topic grammar map is broader than the local 65-question practice layer. Only 13 topics currently have built-in original Via Classica questions. The other 21 topics intentionally show official Cambridge rule/material links without pretending that external content is locally embedded.

@@ -1,0 +1,35 @@
+Via Classica v13.21 — test report
+
+Дата сборки: 2026-09-20
+
+1. Static checks
+PASS node --check english.js
+PASS node --check app.js
+PASS node --check planner.js
+PASS node --check sw.js
+PASS active runtime contains 13.21 markers
+PASS no active runtime markers 13.17/13.18/13.19/13.20
+PASS grammar map: 10 groups / 34 concrete topics
+PASS all 34 unique grammar-reference URLs are HTTP(S)
+
+2. Browser E2E
+Method: Chromium 144 + CDP remote debugging, without Playwright.
+The page was loaded with Page.setDocumentContent using inlined CSS/JS, as in the existing Via Classica E2E method.
+Viewport: mobile 390x844.
+
+Results:
+PASS home boot
+PASS English page navigation
+PASS «Тренировка по теме» opens
+PASS grammar map rendered: 10 groups, 34 topics
+PASS visible concrete labels include «Настоящие времена», «Условные предложения», «Пассивный залог»
+PASS grammar search «conditionals» leaves 1 matching group open
+PASS 40 external grammar links have target=_blank and HTTP(S) hrefs
+PASS existing local topic search still works
+PASS no stale active runtime version markers
+
+3. Scope note
+This layer is intentionally an external-source study map, not a fabricated local Cambridge task bank. No Cambridge question text or answer was copied/generated into the app. Where a verified Cambridge English activity was available, the app links to the official activity. Other topics link to Cambridge Grammar Today.
+
+4. Known limitation
+The 34-topic map does not yet create new local interactive exercises for every grammar topic. That would require a separately verified question bank or permission-safe original exercises. The map therefore provides precise study routing without inventing source/task mappings.

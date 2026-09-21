@@ -1,0 +1,54 @@
+Via Classica v13.24 — REPETITIO FULL
+Date: 2026-09-21
+
+SCOPE
+Full audit of v13.23 -> v13.24: runtime/version continuity, HTML IDs/refs, JS syntax, English module, grammar map/search/practice, source bank/catalog, dictionary, session/return flow, planner, storage/error guards, PWA/service worker/cache, mobile-oriented behavior.
+Browser E2E: Chromium 144.0.7559.96 via CDP remote debugging, without Playwright. Because the sandbox blocks normal localhost navigation and Page.setDocumentContent uses an opaque document origin, browser tests use inlined CSS/JS; persistent localStorage/service-worker behavior remains statically checked and separately guarded in code.
+
+REAL DEFECT FOUND AND FIXED
+1. Grammar-map search matched only the group text. Searching for a concrete topic such as "conditionals" therefore opened the correct group but left all topics in that group visible instead of narrowing to the matching topics. Fixed: the search now evaluates every .grammar-item, hides non-matching topics, hides groups with zero matches, and opens matching groups. After clearing the search all topics are restored.
+
+STATIC CHECKS
+- node --check app.js: PASS
+- node --check planner.js: PASS
+- node --check english.js: PASS
+- node --check sw.js: PASS
+- HTML IDs: 67 total / 67 unique
+- local asset references: 7 / missing 0
+- source bank: 1332 declared / 1332 items / 1332 unique IDs / 1332 HTTP(S) source URLs
+- source-bank content statuses: 1281 metadata-only / 49 external-verified / 2 embedded-verified-mirror
+- active source-bank records: 2 embedded verified records; metadata-only records remain reachable through the catalog/source-assisted flow by design
+- grammar map: 34 topics across 10 groups
+- grammar practice: 13 reachable pools / 65 questions / 5 questions per pool
+- active runtime version: 13.24
+- active runtime stale markers 13.17–13.23: 0
+- ZIP integrity: PASS
+
+BROWSER E2E
+- Boot to Home: PASS
+- Top-level navigation: PASS
+- English home actions: train/topic/profile/dictionary/source catalog all present
+- Topic layer: 12 pedagogical tracks / 10 grammar groups / 34 grammar topics: PASS
+- Grammar search "conditionals": exactly 2 matching topic rows visible (the two matching conditionals topics): PASS
+- Clearing grammar search restores all 34 topics: PASS
+- All 13 built-in grammar practice buttons open successfully: PASS
+- Each built-in grammar practice opens with 4 answer options and a working Check button: PASS
+- Wrong-answer retry path and second-attempt completion path: PASS on sampled pools
+- Source catalog: 50 initial rows / 1332 total: PASS
+- Catalog search: PASS (2 embedded FIPI records found by id search)
+- Catalog pagination: 50 -> 100: PASS
+- Metadata-only source task: launch card + official-source button, no iframe: PASS
+- External-task completion path: PASS; after completion the button reads "Вернуться в каталог" and returns to the catalog
+- Runtime JS exceptions during tested flows: 0
+- Internal English navigation does not deliberately scroll to top when English is already active: PASS; browser focus/scroll clamping is treated separately from app navigation
+
+STORAGE / PLANNER / PWA
+- Corrupt JSON guards, type normalization, duplicate-ID guards, freeze/replan handlers, schedule import/export paths and service-worker cache/version logic were statically inspected.
+- Persistent localStorage and service-worker installation cannot be honestly claimed as browser-verified in this CDP environment because the opaque setDocumentContent document has no usable storage/service-worker origin; the application catches storage failures rather than crashing.
+
+SOURCE VERIFICATION
+- External source URLs are preserved as source links; no external source text is fabricated or silently copied into the local bank.
+- The grammar layer continues to distinguish built-in Via Classica questions from official external Cambridge material.
+
+REMAINING PRODUCT LIMITATION
+The grammar map contains 34 concrete topics, while the local second-layer practice currently covers 13 topics (65 original Via Classica questions). The other 21 topics intentionally link to official material where available; they are not falsely represented as embedded local Cambridge tasks.

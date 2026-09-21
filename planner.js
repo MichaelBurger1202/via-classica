@@ -95,8 +95,13 @@ async function importScheduleUrl(){
  const url=prompt('Вставь прямую ссылку на JSON-файл расписания. Для GitHub используй Raw-ссылку.'); if(!url)return;
  try{setScheduleStatus('Загружаю расписание…',true);const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}catch(e){setScheduleStatus('Не удалось загрузить: '+e.message+' Если сайт запрещает запрос, скачай JSON и загрузи его файлом.',false)}
 }
+async function loadBundledSchedule(){
+ try{setScheduleStatus('Восстанавливаю встроенный текущий план…',true);const res=await fetch('./via-classica-schedule-current.json?v=13.25',{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}
+ catch(e){setScheduleStatus('Не удалось загрузить встроенный план: '+e.message,false)}
+}
 function initScheduleImport(){
- const file=document.getElementById('scheduleFile'), fileBtn=document.getElementById('importScheduleFile'), urlBtn=document.getElementById('importScheduleUrl'), exp=document.getElementById('exportSchedule');
+ const file=document.getElementById('scheduleFile'), fileBtn=document.getElementById('importScheduleFile'), urlBtn=document.getElementById('importScheduleUrl'), exp=document.getElementById('exportSchedule'), bundled=document.getElementById('loadBundledSchedule');
+ bundled?.addEventListener('click',loadBundledSchedule);
  fileBtn?.addEventListener('click',()=>file.click());
  file?.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;try{setScheduleStatus('Читаю файл…',true);await loadScheduleText(await f.text())}catch(e){setScheduleStatus(e.message,false)}finally{file.value=''}});
  urlBtn?.addEventListener('click',importScheduleUrl); exp?.addEventListener('click',exportSchedule);
@@ -187,7 +192,7 @@ document.getElementById('dayMode')?.addEventListener('change',e=>{planner.modes[
 document.getElementById('freezeDay')?.addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
 document.getElementById('freezePeriod')?.addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}const requestedDays=Math.floor((dt(end)-dt(start))/86400000)+1;if(requestedDays>90){alert('Период слишком длинный. Максимум — 90 дней.');return}let d=start,n=0;while(d<=end){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
 document.getElementById('replanBtn')?.addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
-// Replace the old task form handler with richer version by adding a second listener; stop old handler effects by using a marker.
+// The planner owns task creation so it can preserve plan metadata and storage state.
 document.getElementById('taskForm')?.addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput')?.value.trim();if(!text)return;const rawType=document.getElementById('taskType')?.value||'move';const rawMinutes=Number(document.getElementById('taskMinutes')?.value)||45;const minutes=Math.max(15,Math.min(600,rawMinutes));s.tasks.push({id:'u'+Date.now(),text,date:today(),type:['move','soft','hard'].includes(rawType)?rawType:'move',minutes,done:false,plan:false});saveState(s);const input=document.getElementById('taskInput');if(input)input.value='';render()});
 render();
 })();

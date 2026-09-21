@@ -1,0 +1,62 @@
+Via Classica v13.20 — REPETITIO 10 / RELEASE REPORT
+
+Base
+- v13.19 REAL archive.
+- Bank records: 1332.
+- Unique bank IDs: 1332.
+- HTTP(S) source URLs: 1332/1332.
+
+REPETITIO 10 — ten real defects corrected
+1. Same-page English actions no longer force window.scrollTo(0,0).
+2. Topic picker now has a pedagogical layer instead of only raw exam-part names.
+3. Topic labels/descriptions distinguish grammar/reading subjects from exam formats.
+4. Granular grammar topics without verified source mapping are explicitly marked as unavailable rather than guessed.
+5. Source catalog now lists individual source-bank records.
+6. Catalog search added.
+7. Catalog source and topic filters added.
+8. Catalog task mode has a deterministic return-to-catalog action.
+9. Cambridge/PDF source records no longer rely on an embedded PDF/Google Viewer; they use a same-tab official-source launch with return-session restoration.
+10. External metadata-only sources use same-tab official-source launch; embedded-verified tasks stay local and do not depend on external iframes.
+
+STATIC / TECHNICAL CHECKS
+- node --check app.js: PASS
+- node --check planner.js: PASS
+- node --check english.js: PASS
+- node --check sw.js: PASS
+- Active runtime stale 13.17/13.18/13.19 markers: NONE
+- Active runtime version: 13.20
+- Service worker cache: 13.20
+- Manifest version: 13.20
+- HTML duplicate IDs: PASS (67 IDs / 67 unique in baseline DOM)
+- Bank IDs: PASS (1332 / 1332 unique)
+- Source URLs: PASS (1332 / 1332 HTTP(S))
+- ZIP integrity: PASS
+
+BROWSER E2E — REQUIRED CDP RUN
+- Chromium: 144.0.7559.96
+- Method: CDP / remote-debugging Chromium, no Playwright.
+- Environment workaround: Page.setDocumentContent with local CSS/JS inlined; this avoids the environment's blocked local HTTP navigation.
+
+E2E results
+- Clean DOM boot: PASS
+- English navigation: PASS
+- Same-page scroll preservation: PASS (about 599 -> 600 after topic action)
+- Human-readable topic tracks: PASS (12 tracks rendered)
+- Granular-topic honesty notice: PASS
+- Source catalog opens: PASS
+- Catalog initial list: PASS (50 visible from 1332)
+- Catalog search: PASS (Cambridge -> 108 matches)
+- Catalog pagination: PASS (50 -> 100 visible)
+- Cambridge record opens in fullscreen: PASS
+- Cambridge official-source launch: PASS
+- Cambridge answer control enables after input: PASS
+- Cambridge answer checking/feedback: PASS
+- Return to catalog: PASS
+- Embedded FIPI exact record search: PASS
+- Embedded FIPI task opens locally: PASS
+- Embedded FIPI answer control enables: PASS
+- Embedded FIPI dictionary word interaction: PASS (popover + saved state)
+- Runtime API presence: PASS
+
+Important limitation
+- The tested mobile/headless browser does not reliably render external PDFs inside iframes. v13.20 deliberately avoids presenting a blank PDF iframe as if the task were loaded. Cambridge/PDF tasks therefore open the official source in the same browser tab and preserve the current task in sessionStorage so Back returns to the same Via Classica task.

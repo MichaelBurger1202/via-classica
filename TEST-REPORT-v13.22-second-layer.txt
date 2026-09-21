@@ -1,0 +1,41 @@
+Via Classica v13.22 — второй слой английского
+Дата сборки: 2026-09-20
+
+1. Static checks
+PASS node --check app.js
+PASS node --check planner.js
+PASS node --check english.js
+PASS node --check sw.js
+PASS HTML IDs: 67 / 67 unique
+PASS active runtime has 13.22 markers
+PASS active runtime has no stale 13.17 / 13.18 / 13.19 / 13.20 / 13.21 markers
+PASS grammar map: 10 groups / 34 concrete topics
+PASS local interactive grammar practice: 13 concrete topics / 60 tasks
+
+2. Browser E2E
+Method: Chromium 144 + CDP remote debugging, without Playwright.
+Page.setDocumentContent with inlined CSS/JS, following the established Via Classica E2E method.
+
+PASS home boot
+PASS English navigation
+PASS «Тренировка по теме» opens
+PASS grammar map: 10 groups / 34 topics
+PASS 13 local-practice buttons rendered
+PASS Present Simple / Present Continuous practice opens
+PASS first local task renders as a 4-option MCQ
+PASS option click selects an answer and enables «Проверить ответ»
+PASS correct answer produces «✓ Верно», «Почему?» and «Дальше →»
+PASS second task loads after «Дальше →»
+PASS search «conditionals» leaves only «Условные предложения» visible
+PASS conditional local-practice button is available
+
+3. Real bug found and fixed during browser testing
+Before the fix, local grammar tasks rendered but their option handlers were absent. Cause: isExternalSourceTask() returned true for every non-source task because it only checked !sourceReady(). The external branch then returned before wiring MCQ/input handlers.
+Fix: external detection is now limited to source-mcq/source-input/source-link records that are not sourceReady().
+After the fix, the browser test confirmed .english-option receives a click handler, selected state appears, and englishCheck becomes enabled.
+
+4. Content policy / source integrity
+The 60 tasks are original Via Classica practice. They are not presented as Cambridge questions and do not copy Cambridge question text. Cambridge remains the source for the first-layer rule/practice links.
+
+5. Scope
+The second layer currently covers 13 high-priority concrete grammar topics. The remaining 22 topics in the 34-topic grammar map still use the first-layer official material until dedicated original practice is added.

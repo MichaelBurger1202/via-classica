@@ -1,0 +1,82 @@
+Via Classica v13.25 — REPETITIO FULL
+Дата: 21.09.2026
+
+База релиза
+- v13.25 объединяет изменения v13.21–v13.24 поверх v13.20.
+- Добавлен bundled-файл текущего учебного плана: via-classica-schedule-current.json.
+- Runtime/cache/manifest выровнены на v13.25.
+
+РЕАЛЬНЫЕ ДЕФЕКТЫ, НАЙДЕННЫЕ В ТЕКУЩЕМ ЦИКЛЕ И ИСПРАВЛЕННЫЕ
+1) Повторной попытке ручной грамматической практики показывался следующий вопрос, потому что текущий ID уже находился в manual.used. Исправлено: retry остаётся на том же current.
+2) Кнопка «Добавить ссылку» передавала MouseEvent в openModal как будто это редактируемая ссылка. Из-за modal.dataset.edit="undefined" новая ссылка не сохранялась. Исправлено: обработчик вызывает openModal() без event.
+
+СТАТИЧЕСКАЯ ПРОВЕРКА
+- node --check app.js: PASS
+- node --check planner.js: PASS
+- node --check english.js: PASS
+- node --check sw.js: PASS
+- HTML IDs: 68 / 68 уникальных
+- локальные ссылки index.html: 7 / missing 0
+- source bank: 1332 записи / 1332 уникальных ID / 1332 HTTP(S) sourceUrl
+- source bank types: source-mcq 1168, source-input 115, source-link 49
+- grammar map: 34 темы / 10 групп
+- grammar practice: 34 темы / 170 заданий / 5 на тему
+- grammar IDs: 170 / 170 уникальных
+- все grammar answers присутствуют среди options; у каждого задания есть why и ex
+- активные runtime-маркеры v13.17–v13.24: 0
+- активный runtime version: 13.25
+- manifest version: 13.25
+- service-worker cache: via-classica-v13.25
+- SW ASSETS: 11 / missing 0
+- bundled schedule входит в SW ASSETS
+- ZIP integrity: PASS
+- SHA-256 финального ZIP: abbfc61d6eaaa0960fd305149da2a4c07a855fac261071aa1dfc9772b20c70b3
+
+БРАУЗЕРНЫЙ E2E
+Метод: Chromium headless + Chrome DevTools Protocol / WebSocket.
+Playwright не использовался.
+Локальная HTTP-навигация в среде блокируется, поэтому тестовый документ подавался через Page.setDocumentContent с inline CSS/JS и mock storage.
+
+Основной сценарий:
+- boot / Home: PASS
+- главная навигация: 7/7 PASS
+- planner: добавление задачи: PASS
+- freeze day: PASS
+- bundled schedule restore: PASS; статус подтверждён, 335 plan tasks создано
+- schedule export status: PASS
+- archive links add/edit/favorite/delete: PASS
+- grammar map: 10 групп / 34 темы / 34 кнопки практики
+- grammar search «conditionals»: 2 точных совпадения, 1 группа; очистка возвращает все 34 темы
+- manual retry: кнопка появляется; retry показывает тот же вопрос
+- ВСЕ 34 grammar sessions: 34/34 открылись, 4 options, completion result — PASS
+- ВСЕ 170 grammar questions: 170/170 реально пройдены в браузере с ожидаемым ответом; failures 0
+- AI session: 10/10 заданий; финал «10 заданий пройдено.»; session очищается
+- dictionary: слово кликабельно, popover открывается, запись сохраняется; повторное слово disabled в этот день
+- source catalog: 50 стартовых записей из 1332; «Показать ещё» → 100
+- source filter: 49 результатов
+- topic filter: 5 результатов
+- no-match search: 0 результатов + «Ничего не найдено.»
+- embedded FIPI source: fullscreen open, no iframe, 645 dict-word elements, input present
+- embedded FIPI answer: feedback.good = true; next = true
+- возвращение из catalog task: catalog виден, overlay закрыт
+- external Cambridge task: launcher card есть, iframe не используется, same-tab marker path есть
+- external open handler: реальный click-listener найден через DOMDebugger; handler записывает sessionStorage['viaClassicaReturnTask'] перед top-level navigation
+- runtime JS errors в основном E2E: 0
+
+МОБИЛЬНЫЙ / DESKTOP E2E
+- 390x844: scrollWidth 390 == viewport width 390, drawer opens, English topic map accessible, conditional search returns 2, JS errors 0
+- 1440x900: scrollWidth 1425 == body width 1425, English topic map accessible, conditional search returns 2, JS errors 0
+
+IMPORT/EXPORT
+- реальный File API import bundled schedule через input[type=file]: PASS
+- 1 файл принят, schedule status PASS, 335 plan tasks
+- export status: PASS
+
+ОГРАНИЧЕНИЯ СРЕДЫ
+- В текущей изолированной CDP-среде внешний Cambridge/FIPI URL после top-level navigation не загружается из-за сетевого ограничения sandbox. Поэтому релиз не делает вид, что внешнее содержимое визуально проверено здесь.
+- Для внешней навигации проверены DOM/event handler, same-tab архитектура и запись return-task marker.
+- Service worker install/update и постоянное browser localStorage нельзя честно объявить полностью браузерно проверенными через opaque-origin Page.setDocumentContent. Syntax, cache list, storage guards и runtime сценарии проверены; внешний network/service-worker lifecycle в этой среде ограничен.
+
+ИТОГ
+v13.25 собрана как единая система: планировщик + импорт/экспорт текущего плана + English topic map + 34 темы / 170 локальных заданий + retry + AI 10 + dictionary + source catalog 1332 + verified embedded source tasks + reliable external-source launch + PWA version alignment.
+Все найденные в этом цикле реальные функциональные дефекты исправлены до финальной упаковки.

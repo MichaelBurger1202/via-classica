@@ -15,7 +15,7 @@ function bindChecks(){
   $$('input[data-id]').forEach(x=>{x.checked=!!state.checks[x.dataset.id];x.addEventListener('change',()=>{state.checks[x.dataset.id]=x.checked;save()})})
 }
 function updateProgress(){const all=$$('input[data-id]');const done=all.filter(x=>x.checked).length;const p=all.length?Math.round(done/all.length*100):0;const pct=$('#pct'),bar=$('#bar');if(pct)pct.textContent=p+'%';if(bar)bar.style.width=p+'%'}
-function show(page){$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();window.scrollTo({top:0,behavior:'smooth'}); if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
+function show(page){const wasActive=$('#'+page)?.classList.contains('active');$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();if(!wasActive)window.scrollTo({top:0,behavior:'smooth'}); if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
 window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 $$('[data-add-task]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show('home');const form=$('#taskForm'),input=$('#taskInput');if(form){form.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input?.focus(),250)}}));
@@ -42,7 +42,7 @@ function renderLinks(){const grid=$('#linksGrid');if(!grid)return;const filter=$
 function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}function escapeAttr(s){return escapeHtml(s)}
 $('#linkFilter')?.addEventListener('change',renderLinks);const modal=$('#linkModal');
 function openModal(link=null){modal.classList.add('open');modal.setAttribute('aria-hidden','false');modal.dataset.edit=link?link.id:'';$('#linkName').value=link?link.name:'';$('#linkUrl').value=link?link.url:'';$('#linkCategory').value=link?link.cat:'Вузы';$('#linkFav').checked=!!(link&&link.fav);$('#linkName').focus()}function openLinkEdit(link){openModal(link)}function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');$('#linkForm').reset();delete modal.dataset.edit}
-$('#addLinkBtn')?.addEventListener('click',openModal);$('#closeModal')?.addEventListener('click',closeModal);$('#cancelLink')?.addEventListener('click',closeModal);modal?.addEventListener('click',e=>{if(e.target===modal)closeModal()});
+$('#addLinkBtn')?.addEventListener('click',()=>openModal());$('#closeModal')?.addEventListener('click',closeModal);$('#cancelLink')?.addEventListener('click',closeModal);modal?.addEventListener('click',e=>{if(e.target===modal)closeModal()});
 $('#linkForm')?.addEventListener('submit',e=>{e.preventDefault();const id=modal.dataset.edit;if(id){const l=state.links.find(x=>x.id===id);if(l){l.name=$('#linkName').value.trim();const url=safeHttpUrl($('#linkUrl').value.trim());if(!url){alert('Нужна корректная ссылка http:// или https://');return}l.url=url;l.cat=$('#linkCategory').value;l.fav=$('#linkFav').checked}}else {const url=safeHttpUrl($('#linkUrl').value.trim());if(!url){alert('Нужна корректная ссылка http:// или https://');return}state.links.push({id:'link-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name:$('#linkName').value.trim(),url,cat:$('#linkCategory').value,fav:$('#linkFav').checked});}save();renderLinks();closeModal()});
 seedLinks();renderTasks();renderLinks();bindChecks();updateProgress();
 
@@ -71,6 +71,6 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=13.19').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=13.25').catch(() => {});
   });
 }

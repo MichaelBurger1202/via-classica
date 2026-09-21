@@ -95,13 +95,21 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   function wireDictionaryWords(root){
     (root||document).querySelectorAll('.dict-word').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();if(b.disabled||b.classList.contains('is-saved-today')||isSavedToday(b.dataset.dictWord||''))return;showWordPopup(b)}});
   }
+  // Единый тренировочный банк: встроенная авторская практика + только действительно
+  // проверенные встроенные записи source-bank. Метаданные внешних источников остаются
+  // в каталоге и не ломают ежедневную тренировку переходом наружу.
+  function localGrammarBank(){
+    return Object.keys(GRAMMAR_PRACTICE).flatMap(title=>grammarPracticeFor(title));
+  }
+  const trainingBank=()=>[...localGrammarBank(),...bank.filter(sourceReady)];
+
   function pick(){
     const completedInSession=(st.session&&Array.isArray(st.session.done))?st.session.done:[];
     const usedAll=new Set(st.history.map(x=>x.taskId).filter(Boolean));
     const blocked=new Set([...usedAll,...completedInSession]);
     const errors={};
     st.history.forEach(x=>{if(x.correct===false)errors[x.topic]=(errors[x.topic]||0)+1});
-    const eligible=eligibleBank();
+    const eligible=trainingBank();
     let candidates=eligible.filter(x=>!blocked.has(x.id));
     let recycled=false;
     if(!candidates.length){
@@ -139,18 +147,53 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
 
   function renderSourceCatalog(){
     const box=$('#englishTask'); if(!box)return;
-    const groups={};
-    bank.forEach(t=>{const k=t.sourceName||'Источник'; (groups[k]??=[]).push(t)});
-    const cards=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length).map(([name,items])=>{
-      const embedded=items.filter(x=>sourceReady(x)).length;
-      const answers=items.filter(x=>x.answer||x.accepted).length;
-      const links=items.filter(x=>x.sourceUrl).length;
-      const first=items.find(x=>x.sourceUrl);
-      return '<article class="source-catalog-card"><span class="source-status-pill">'+items.length+' записей</span><span class="source-status-pill">встроено: '+embedded+'</span><span class="source-status-pill">ключ: '+answers+'</span><h4>'+esc(name)+'</h4><div class="source-stat">В тренировке: '+items.length+' · через источник: '+(items.length-embedded)+' · локально встроено: '+embedded+'</div><div class="source-catalog-actions">'+(first?'<a class="ghost source-open" href="'+esc(first.sourceUrl)+'" target="_blank" rel="noopener">Открыть источник ↗</a>':'')+'</div></article>';
-    }).join('');
-    const nav=FIPI_NAVIGATOR.map(x=>'<div class="source-catalog-row"><div><b>'+esc(x.title)+'</b><br><small>'+esc(x.ids)+'</small></div><a class="text-link" href="'+esc(x.url)+'" target="_blank" rel="noopener">Открыть ↗</a></div>').join('');
-    box.innerHTML='<div class="source-catalog"><div class="english-start"><span>SOURCE BANK · v13.19</span><h3>Банк реальных источников</h3><div class="source-catalog-note"><b>В тренировке доступны все 1332 записи банка.</b> Задания с проверенным содержимым показываются непосредственно как локальные карточки; остальные открываются прямо внутри тренировочной сессии через оригинальный источник. Ничего не генерируется вместо оригинального задания.</div></div><div class="source-catalog-grid">'+cards+'</div><div class="english-start"><h3>ФИПИ · Навигатор 2026</h3><div class="source-catalog-list">'+nav+'</div></div><div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
-    $('#englishStop')?.addEventListener('click',()=>{ if(mode==='sources') closeTraining(); });
+    const all=eligibleBank();
+    const sourceNames=[...new Set(all.map(t=>t.sourceName||'Источник'))].sort((a,b)=>a.localeCompare(b,'ru'));
+    const topics=[...new Set(all.map(t=>topicLabel(t.topic||'')))].sort((a,b)=>a.localeCompare(b,'ru'));
+    const statusLabel=t=>sourceReady(t)?'встроено':'внешний источник';
+    const rows=all.slice(0,50).map(catalogRow).join('');
+    box.innerHTML='<div class="source-catalog">'+
+      '<div class="english-start"><span>SOURCE BANK · v13.25</span><h3>Каталог заданий</h3><div class="source-catalog-note"><b>'+all.length+' записей.</b> Здесь можно искать конкретное задание, фильтровать по источнику и учебной категории и сразу запускать выбранную запись. Текст внешних заданий не копируется в приложение.</div></div>'+
+      '<div class="source-catalog-toolbar"><input id="sourceCatalogSearch" class="topic-search" placeholder="Поиск по источнику, теме или номеру…"><select id="sourceCatalogSource"><option value="">Все источники</option>'+sourceNames.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('')+'</select><select id="sourceCatalogTopic"><option value="">Все темы</option>'+topics.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('')+'</select></div>'+ 
+      '<div class="source-catalog-summary" id="sourceCatalogSummary"></div>'+ 
+      '<div class="source-catalog-list source-catalog-task-list" id="sourceCatalogList">'+rows+'</div>'+ 
+      '<div class="source-catalog-more"><button class="ghost" id="sourceCatalogMore">Показать ещё 50</button></div>'+ 
+      '<div class="english-start"><h3>Официальные навигаторы</h3><div class="source-catalog-list">'+FIPI_NAVIGATOR.map(x=>'<div class="source-catalog-row"><div><b>'+esc(x.title)+'</b><br><small>'+esc(x.ids)+'</small></div><a class="text-link" href="'+esc(x.url)+'" target="_blank" rel="noopener">Открыть ↗</a></div>').join('')+'</div></div>'+ 
+      '<div class="english-answer-bar"><button class="ghost english-stop" id="englishStop">Закрыть</button></div></div>';
+    let limit=50;
+    const renderRows=()=>{
+      const q=($('#sourceCatalogSearch')?.value||'').trim().toLowerCase();
+      const src=$('#sourceCatalogSource')?.value||'';
+      const tp=$('#sourceCatalogTopic')?.value||'';
+      const filtered=all.filter(t=>{
+        const label=topicLabel(t.topic||'');
+        const hay=[t.id,t.sourceName,t.sourceQuestion,t.topic,label,t.level,t.type].join(' ').toLowerCase();
+        return (!q||hay.includes(q))&&(!src||t.sourceName===src)&&(!tp||label===tp);
+      });
+      const visible=filtered.slice(0,limit);
+      $('#sourceCatalogList').innerHTML=visible.map(catalogRow).join('')||'<div class="dict-empty">Ничего не найдено.</div>';
+      $('#sourceCatalogSummary').textContent='Показано '+visible.length+' из '+filtered.length+' найденных записей';
+      const more=$('#sourceCatalogMore');
+      if(more){more.hidden=visible.length>=filtered.length;more.textContent=visible.length+50<filtered.length?'Показать ещё 50':'Показать ещё';}
+      wireCatalogRows();
+    };
+    const reset=()=>{limit=50;renderRows()};
+    $('#sourceCatalogSearch').oninput=reset;$('#sourceCatalogSource').onchange=reset;$('#sourceCatalogTopic').onchange=reset;
+    $('#sourceCatalogMore').onclick=()=>{limit+=50;renderRows()};
+    $('#englishStop')?.addEventListener('click',()=>{if(mode==='sources'){closeTraining()}else{stopTraining()}});
+    renderRows();
+
+    function catalogRow(t){
+      const label=topicLabel(t.topic||'');
+      const question=t.sourceQuestion!=null?'№ '+t.sourceQuestion:'';
+      return '<article class="source-catalog-task" data-task-id="'+esc(t.id)+'"><div class="source-catalog-task-main"><div class="source-catalog-task-badges"><span class="source-status-pill">'+esc(t.level||'')+'</span><span class="source-status-pill">'+esc(statusLabel(t))+'</span></div><h4>'+esc(label)+'</h4><p>'+esc(t.sourceName||'Источник')+(question?' · '+esc(question):'')+'</p></div><div class="source-catalog-task-actions"><button class="primary catalog-open-task" data-task-id="'+esc(t.id)+'">Открыть задание</button><a class="text-link" href="'+esc(t.sourceUrl||'#')+(t.sourcePage?'#page='+encodeURIComponent(t.sourcePage):'')+'" target="_blank" rel="noopener">Источник ↗</a></div></article>';
+    }
+    function wireCatalogRows(){
+      document.querySelectorAll('.catalog-open-task').forEach(b=>b.onclick=()=>{
+        const t=all.find(x=>x.id===b.dataset.taskId); if(!t)return;
+        mode='catalog';current=t;retrying=false;submitted=false;openTraining();renderCurrentTask(false);
+      });
+    }
   }
 
   function ensureOverlay(){
@@ -167,10 +210,11 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   }
   function openTraining(){ensureOverlay().classList.add('open');document.body.classList.add('english-lock');}
   function closeTraining(){
+    const destination=mode;
     const overlay=$('#englishFullscreen'); if(overlay)overlay.classList.remove('open');
     document.body.classList.remove('english-lock');
     current=null; manual=null; retrying=false; submitted=false; save();
-    if(mode==='manual')renderTopic(); else render();
+    if(destination==='manual')renderTopic(); else if(destination==='catalog'||destination==='sources')renderSourceCatalog(); else render();
   }
   function setProgress(done,total){
     const label=$('#englishProgressText'),bar=$('#englishProgressBar');
@@ -210,16 +254,17 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     return false;
   }
   bank.forEach(t=>{ if(/^source-(mcq|input)$/.test(t.type) && !sourceReady(t)) t.active=false; });
-  // v13.19: every source-bank record is reachable from the training flow.
+  // Unified source-bank routing: every record is reachable from the training flow.
   // Metadata-only records are presented as source-assisted tasks rather than being
   // silently excluded. We never invent question text or answers.
   const eligibleBank=()=>bank.filter(t=>t && /^source-(mcq|input|link)$/.test(t.type));
-  const isExternalSourceTask=t=>!!t && !sourceReady(t);
+  const isExternalSourceTask=t=>!!t && /^source-(mcq|input|link)$/.test(t.type) && !sourceReady(t);
   const hasVerifiedAnswer=t=>!!t && ((t.type==='source-mcq' && typeof t.answer==='string' && t.answer.trim() && t.answerFormat==='letter') || (t.type==='source-input' && Array.isArray(t.accepted) && t.accepted.length));
 
   function sourceTextBlock(label,text,sentence){
     return text ? '<section class="source-text-block"><div class="source-text-label">'+esc(label)+'</div><div class="source-text">'+wordHtml(text,sentence||text).replace(/\n/g,'<br>')+'</div></section>' : '';
   }
+  function isCambridgePdf(t){return !!t&&/cambridgeenglish\.org\/.+\.pdf/i.test(String(t.sourceUrl||''))}
   function sourceTaskMarkup(t,retry=false){
     const c=sourceContentParts(t);
     if(!sourceReady(t)){
@@ -230,11 +275,11 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
           ? '<div class="english-external-answer"><label>Твой ответ</label><input id="englishAnswer" maxlength="4" placeholder="например, A"></div>'
           : '<div class="english-external-answer"><label>Твой ответ</label><input id="englishAnswer" placeholder="Введи ответ"></div>')
         : '<div class="source-selfcheck">У этого источника в банке нет проверенного ключа. Реши задание в оригинале. Завершение здесь фиксируется как «изучено», но не считается правильным ответом.</div>';
-      const frameSrc=/\.pdf(?:#|$)/i.test(src) ? 'https://docs.google.com/gview?embedded=1&url='+encodeURIComponent(src) : src;
+      const isPdf=/\.pdf(?:#|$)/i.test(src), useTopLevel=true;
       return (retry?'<div class="english-retry-label">Попробуй ещё раз</div>':'')+
-        '<div class="source-task-note source-task-unready"><b>Реальное задание из банка</b><p>Оригинал открывается в тренировочном окне, когда источник разрешает встраивание. Если окно пустое или не загружается, используй «Открыть источник отдельно ↗» — задание остаётся тем же, без пересказа и генерации.</p></div>'+
+        '<div class="source-task-note source-task-unready"><b>Реальная запись из банка</b><p>'+(useTopLevel?'Этот внешний источник нельзя надёжно встроить внутрь мобильного окна. Поэтому Via Classica открывает официальный источник в этой же вкладке; после возврата браузером текущая сессия сохраняется и ты продолжаешь с того же задания.':'Оригинал загружается прямо в это окно. Если внешний источник блокирует встраивание или отвечает слишком долго, появится резервный переход.')+'</p></div>'+
         '<div class="external-task-meta"><span>Задание № '+esc(t.sourceQuestion||'')+'</span><span>'+esc(t.sourceName||'Источник')+'</span></div>'+
-        '<div class="source-iframe-wrap"><iframe class="source-task-iframe" src="'+esc(frameSrc)+'" title="Оригинальное задание из источника" loading="eager" referrerpolicy="no-referrer"></iframe></div>'+
+        (useTopLevel?'<div class="source-launch-card"><b>Официальный источник готов к открытию</b><p>'+(isCambridgePdf(t)?'Cambridge B2 First: официальный раздел подготовки и sample tests.':'Оригинал задания по сохранённой ссылке.')+'</p><button type="button" class="primary" id="openOfficialSource">Открыть официальный источник ↗</button></div>':'<div class="source-iframe-wrap"><iframe class="source-task-iframe" src="'+esc(src)+'" title="Оригинальное задание из источника" loading="eager" referrerpolicy="no-referrer"></iframe></div>')+
         '<div class="source-iframe-actions"><a class="secondary-action source-open" href="'+esc(src)+'" target="_blank" rel="noopener">Открыть источник отдельно ↗</a></div>'+
         '<div class="source-task-note source-task-question"><b>Номер задания: '+esc(t.sourceQuestion||'')+'</b><p>Если источник показывает несколько вопросов, выполни именно указанный номер. После решения введи свой ответ ниже — Via Classica проверит его по сохранённому ключу.</p><p>Слова из внешнего задания нельзя надёжно сделать кликабельными внутри iframe: нужное слово можно добавить в словарь вручную через раздел «Словарь».</p></div>'+
         answerUI+
@@ -271,15 +316,15 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     const box=$('#englishFullscreenContent');
     if(!box||!current) return;
     submitted=false;
-    const title='<div class="english-task-heading"><small>'+(mode==='manual'?'ТРЕНИРОВКА ПО ТЕМЕ':'АДАПТИВНАЯ ТРЕНИРОВКА')+'</small></div>';
+    const title='<div class="english-task-heading"><small>'+(mode==='manual'?'ТРЕНИРОВКА ПО ТЕМЕ':mode==='catalog'?'БАНК ИСТОЧНИКОВ':'АДАПТИВНАЯ ТРЕНИРОВКА')+'</small></div>';
     const meta='<div class="task-meta"><span>'+esc(current.level||current.skill||'')+'</span><span>'+esc(topicLabel(current.topic||''))+'</span></div>';
     box.innerHTML=title+meta+'<h1 class="english-question">'+taskHeading(current)+'</h1>'+taskMarkup(current,retry);
     wireAnswer(); wireDictionaryWords(box);
-    setProgress(st.session?.n||0,st.session?.total||0);
+    const progressDone=mode==='manual'?(manual?.answered||0):(st.session?.n||0); const progressTotal=mode==='manual'?(manual?.pool?.length||0):(st.session?.total||0); setProgress(progressDone,progressTotal);
   }
   function renderTask(){
     try{
-      const resumable=st.session&&st.session.currentTaskId?eligibleBank().find(x=>x.id===st.session.currentTaskId):null;
+      const resumable=st.session&&st.session.currentTaskId?trainingBank().find(x=>x.id===st.session.currentTaskId):null;
       current=resumable||pick();
     }
     catch(e){
@@ -293,15 +338,17 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   }
   function renderManualTask(retry=false){
     if(!manual||!manual.pool.length) return;
-    const available=manual.pool.filter(t=>!manual.used.includes(t.id));
-    if(!available.length){
-      const box=$('#englishFullscreenContent');
-      box.innerHTML='<div class="english-complete"><span>ТЕМА ЗАВЕРШЕНА</span><h1>Все доступные задания пройдены.</h1><p>Повторы не используются, пока в теме остаются неиспользованные задания.</p><button class="primary" id="manualDone">К темам</button></div>';
-      $('#manualDone').onclick=()=>{closeTraining();renderTopic()}; return;
+    // На повторной попытке остаёмся на том же задании. Нельзя брать
+    // следующий элемент из pool: текущий уже отмечен в used при первом показе.
+    if(retry && current && manual.pool.some(t=>t.id===current.id)){
+      renderCurrentTask(true);
+      return;
     }
+    const available=manual.pool.filter(t=>!manual.used.includes(t.id));
+    if(!available.length){ finishManual('done'); return; }
     current=available[0];
-    if(!retry) manual.used.push(current.id);
-    renderCurrentTask(retry);
+    manual.used.push(current.id);
+    renderCurrentTask(false);
   }
   function wireAnswer(){
     const external=isExternalSourceTask(current);
@@ -310,11 +357,18 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     if(external){
       const input=$('#englishAnswer');
       if(input){ input.oninput=e=>{const check=$('#englishCheck'); if(check)check.disabled=!e.target.value.trim();}; }
+      $('#openOfficialSource')?.addEventListener('click',()=>{try{sessionStorage.setItem('viaClassicaReturnTask',current.id)}catch(_){} window.location.href=current.sourceUrl+(current.sourcePage?'#page='+encodeURIComponent(current.sourcePage):'')});
       $('#externalDone')?.addEventListener('click',()=>{ record(null); appendNext(); });
       const frame=document.querySelector('.source-task-iframe');
-      if(frame){ frame.addEventListener('error',()=>{ const note=document.createElement('div'); note.className='source-iframe-fallback'; note.innerHTML='<b>Источник не разрешил встраивание.</b><p>Открой оригинал отдельной вкладкой и выполни указанное задание.</p>'; frame.parentElement?.appendChild(note); }); }
+      if(frame){
+        const wrap=frame.parentElement;
+        const showFallback=()=>{if(wrap?.querySelector('.source-iframe-fallback'))return;const note=document.createElement('div');note.className='source-iframe-fallback';note.innerHTML='<b>Источник не встроился вовремя.</b><p>Via Classica не подменяет оригинальное задание. Можно повторить загрузку здесь или открыть тот же официальный источник в новой вкладке.</p><div class="source-fallback-actions"><button type="button" class="secondary-action" id="sourceRetry">Повторить загрузку</button><a class="secondary-action" href="'+esc(src)+'" target="_blank" rel="noopener">Открыть источник отдельно ↗</a></div>';wrap?.appendChild(note);$('#sourceRetry')?.addEventListener('click',()=>{frame.src=src;note.remove();setTimeout(showFallback,7000)});};
+        frame.addEventListener('load',()=>{frame.dataset.loaded='1';});
+        frame.addEventListener('error',showFallback);
+        setTimeout(()=>{if(frame.dataset.loaded!=='1')showFallback()},7000);
+      }
       $('#englishCheck')?.addEventListener('click',()=>check($('#englishAnswer').value.trim()));
-      $('#englishStop')?.addEventListener('click',()=>closeTraining());
+      $('#englishStop')?.addEventListener('click',stopTraining);
       return;
     }
     if(isChoice){
@@ -327,7 +381,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
       if(input)input.oninput=e=>{const check=$('#englishCheck');if(check)check.disabled=!e.target.value.trim()};
     }
     $('#englishCheck').onclick=()=>check(isChoice?selected:$('#englishAnswer').value.trim());
-    $('#englishStop').onclick=()=>closeTraining();
+    $('#englishStop').onclick=stopTraining;
   }
 
   function normalize(s){return String(s||'').toLowerCase().replace(/[“”"'.,!?;:()\-]/g,' ').replace(/\s+/g,' ').trim()}
@@ -343,6 +397,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
 
   function record(correct){
     st.history.push({taskId:current.id,topic:current.topic,skill:current.skill,correct,ts:Date.now()});
+    if(mode==='manual' && manual && (correct===true || correct===false)){ manual.answered++; if(correct) manual.correct++; }
     if(mode==='ai'){if(!st.session.done.includes(current.id))st.session.done.push(current.id);st.session.n++;st.session.currentTaskId=null}
     save();
   }
@@ -384,13 +439,33 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   function renderRetry(){ renderCurrentTask(true); }
 
 
+  function finishManual(reason='stop'){
+    if(!manual) return;
+    const isGrammar=!!manual.isGrammar;
+    const title=isGrammar?(manual.grammarTitle||manual.topic.replace(/^Грамматика · /,'')):manual.topic;
+    const answered=manual.answered||0, correct=manual.correct||0;
+    const total=manual.pool?.length||0;
+    const remaining=Math.max(0,total-manual.used.length);
+    const box=$('#englishFullscreenContent');
+    if(!box)return;
+    const again=isGrammar?'<button class="primary" id="againGrammar">Пройти ещё 5</button>':'';
+    box.innerHTML='<div class="english-complete"><span>'+(reason==='done'?'ТЕМА ЗАВЕРШЕНА':'ТРЕНИРОВКА ЗАВЕРШЕНА')+'</span><h1>'+esc(title)+'</h1><p><b>'+correct+' из '+answered+'</b> отвечено правильно.'+(remaining?' Осталось заданий: '+remaining+'.':' Все доступные задания пройдены.')+'</p><div class="english-actions">'+again+'<button class="ghost" id="manualTopics">К темам</button></div></div>';
+    if(isGrammar)$('#againGrammar').onclick=()=>startGrammarPractice(title,grammarPracticeFor(title));
+    $('#manualTopics').onclick=()=>{closeTraining();renderTopic()};
+  }
+  function stopTraining(){
+    if(mode==='manual' && manual){ finishManual('stop'); return; }
+    closeTraining();
+  }
+
   function appendNext(){
     if(!$('#englishFeedback')) return;
     const wrap=document.createElement('div');wrap.className='english-next';
     const isDone=mode==='ai'&&st.session.n>=st.session.total;
-    wrap.innerHTML='<button class="primary" id="nextEnglish">'+(isDone?'Завершить тренировку':'Дальше →')+'</button>';
+    const isCatalog=mode==='catalog';
+    wrap.innerHTML='<button class="primary" id="nextEnglish">'+(isDone?'Завершить тренировку':isCatalog?'Вернуться в каталог':'Дальше →')+'</button>';
     $('#englishFeedback').appendChild(wrap);
-    $('#nextEnglish').onclick=()=>isDone?finish():mode==='ai'?renderTask():manualNext();
+    $('#nextEnglish').onclick=()=>isDone?finish():isCatalog?(closeTraining(),renderSourceCatalog()):mode==='ai'?renderTask():manualNext();
     if(mode==='ai')setProgress(st.session.n,st.session.total);
   }
 
@@ -419,7 +494,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     nav('english');const box=$('#englishTask'),errs={};
     st.history.forEach(x=>{if(x.correct===false)errs[x.topic]=(errs[x.topic]||0)+1});
     const top=Object.entries(errs).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
-    box.innerHTML='<div class="english-profile"><span>МОЙ ПРОФИЛЬ</span><h3>'+(st.profile.cefr?esc(st.profile.cefr)+' — '+({A1:'Beginner',A2:'Elementary',B1:'Intermediate',B2:'Upper-Intermediate',C1:'Advanced',C2:'Proficient'}[st.profile.cefr]||'уровень определён'):'Профиль формируется')+'</h3><p>Предварительная оценка; по мере накопления истории профиль будет уточняться.</p>'+(top.length?'<h4>Сейчас стоит усилить</h4><ul>'+top.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>Устойчивых повторяющихся ошибок пока немного.</p>')+'<button class="text-link" id="profileMore">Подробнее</button></div>';
+    box.innerHTML='<div class="english-profile"><span>МОЙ ПРОФИЛЬ</span><h3>'+(st.profile.cefr?esc(st.profile.cefr)+' — '+({A1:'Beginner',A2:'Elementary',B1:'Intermediate',B2:'Upper-Intermediate',C1:'Advanced',C2:'Proficient'}[st.profile.cefr]||'уровень определён'):'Профиль формируется')+'</h3><p>Профиль формируется по истории тренировок. Встроенная грамматика и проверенные source-bank задания учитываются в общей истории.</p>'+(top.length?'<h4>Сейчас стоит усилить</h4><ul>'+top.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>Устойчивых повторяющихся ошибок пока немного.</p>')+'<button class="text-link" id="profileMore">Подробнее</button></div>';
     $('#profileMore').onclick=()=>{const el=document.createElement('div');el.className='explain-box';el.innerHTML='<b>Подробнее</b><p>В полноценной версии здесь появится расширенная картина по Grammar, Vocabulary, Reading, Listening, Writing и contextual use. Сейчас профиль хранится локально.</p>';box.appendChild(el)};
   }
 
@@ -441,7 +516,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   const TOPIC_LABELS={
     'B2 Part 1':'B2 · Use of English · Выбор слова','B2 Part 2':'B2 · Use of English · Открытый пропуск','B2 Part 3':'B2 · Use of English · Словообразование','B2 Part 4':'B2 · Use of English · Перефразирование','B2 Part 5':'B2 · Reading · Выбор ответа','B2 Part 6':'B2 · Reading · Пропуски в тексте','B2 Part 7':'B2 · Reading · Соотнесение текстов',
     'C1 Part 1':'C1 · Use of English · Выбор слова','C1 Part 2':'C1 · Use of English · Открытый пропуск','C1 Part 3':'C1 · Use of English · Словообразование','C1 Part 4':'C1 · Use of English · Перефразирование','C1 Part 5':'C1 · Reading · Выбор ответа','C1 Part 6':'C1 · Reading · Пропуски в тексте','C1 Part 7':'C1 · Reading · Соотнесение текстов','C1 Part 8':'C1 · Reading · Соотнесение информации',
-    'Понимание основного содержания':'Reading · Понимание основного содержания','Структурно-смысловые связи':'Reading · Структурно-смысловые связи','Полное и точное понимание':'Reading · Полное и точное понимание','Грамматические формы и конструкции':'Grammar · Грамматические формы и конструкции','Образование и использование родственных слов':'Vocabulary · Словообразование','Лексические единицы в контексте':'Vocabulary · Лексика в контексте',
+    'Грамматические формы и конструкции':'Грамматика · Формы и конструкции','Образование и использование родственных слов':'Лексика · Словообразование','Лексические единицы в контексте':'Лексика · Слова в контексте','Понимание основного содержания':'Чтение · Основная мысль','Структурно-смысловые связи':'Чтение · Структура текста','Полное и точное понимание':'Чтение · Полное понимание',
     'Тренировочный вариант №2 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2','Тренировочный вариант №2 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2','Тренировочный вариант №2 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2','Тренировочный вариант №2 2025 — аудирование':'ФИПИ · Аудирование · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — чтение':'ФИПИ · Чтение · Тренировочный вариант №2 (2025)','Тренировочный вариант №2 2025 — грамматика и лексика':'ФИПИ · Грамматика и лексика · Тренировочный вариант №2 (2025)','Открытый вариант КИМ 2026':'ФИПИ · Открытый вариант КИМ 2026','ФИПИ — чтение, открытый банк 2025/2026':'ФИПИ · Чтение · Открытый банк 2025/2026'
   };
   function topicLabel(topic){
@@ -459,17 +534,2437 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
     return String(topic||'Тренировка по теме').replace(/\bPart\b/,'Часть').replace(/\bsection\b/i,'Раздел');
   }
 
+  const PEDAGOGICAL_TRACKS=[
+    {title:'Грамматика · Формы и конструкции',desc:'Проверенный банк ФИПИ по грамматическим формам и конструкциям.',match:['Грамматика · Формы и конструкции']},
+    {title:'Лексика · Словообразование',desc:'Задания на образование и использование родственных слов.',match:['Лексика · Словообразование']},
+    {title:'Лексика · Слова в контексте',desc:'Лексические единицы и их употребление в контексте.',match:['Лексика · Слова в контексте']},
+    {title:'Чтение · Основная мысль',desc:'Понимание основного содержания текста.',match:['Чтение · Основная мысль']},
+    {title:'Чтение · Структура текста',desc:'Структурно-смысловые связи.',match:['Чтение · Структура текста']},
+    {title:'Чтение · Полное понимание',desc:'Полное и точное понимание прочитанного.',match:['Чтение · Полное понимание']},
+    {title:'Use of English · Выбор слова',desc:'Формат выбора слова в контексте; это экзаменационный формат, а не отдельная грамматическая тема.',match:['B2 · Use of English · Выбор слова','C1 · Use of English · Выбор слова']},
+    {title:'Use of English · Открытый пропуск',desc:'Формат открытого пропуска; это экзаменационный формат.',match:['B2 · Use of English · Открытый пропуск','C1 · Use of English · Открытый пропуск']},
+    {title:'Use of English · Словообразование',desc:'Формат словообразования; это экзаменационный формат.',match:['B2 · Use of English · Словообразование','C1 · Use of English · Словообразование']},
+    {title:'Use of English · Перефразирование',desc:'Формат перефразирования; это экзаменационный формат.',match:['B2 · Use of English · Перефразирование','C1 · Use of English · Перефразирование']},
+    {title:'Reading · Выбор ответа',desc:'Формат задания на понимание текста.',match:['B2 · Reading · Выбор ответа','C1 · Reading · Выбор ответа']},
+    {title:'Reading · Соотнесение',desc:'Соотнесение текстов, информации или фрагментов.',match:['B2 · Reading · Соотнесение текстов','C1 · Reading · Соотнесение текстов','C1 · Reading · Соотнесение информации']}
+  ];
+
+  // Грамматическая карта — отдельный учебный слой. Здесь намеренно нет
+  // выдуманной привязки к локальному банку: каждая ссылка ведёт на официальный
+  // Cambridge English / Cambridge Grammar Today материал, проверенный при сборке.
+  const GRAMMAR_MAP=[
+    {id:'present',title:'Настоящие времена',desc:'Present Simple, Present Continuous, Present Perfect и их различия.',items:[
+      {title:'Present Simple и Present Continuous',level:'A1–A2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/present-simple',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/a1g002-present-simple-and-present-continuous-questions',practiceLabel:'Cambridge English: вопросы Present Simple / Present Continuous'},
+      {title:'Present Perfect',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/present-perfect-i-have-worked',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/b1g003-past-simple-and-present-perfect',practiceLabel:'Cambridge English: Past Simple vs Present Perfect'},
+      {title:'Present Perfect Continuous',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/present-perfect-continuous-i-have-been-working'}
+    ]},
+    {id:'past',title:'Прошедшие времена',desc:'Past Simple, Past Continuous, Past Perfect и сравнение форм.',items:[
+      {title:'Past Simple',level:'A1–B1',ref:'https://dictionary.cambridge.org/us/grammar/british-grammar/past-simple-i-worked-',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/a1g003-past-simple-of-irregular-verbs',practiceLabel:'Cambridge English: Past Simple и неправильные глаголы'},
+      {title:'Past Continuous или Past Simple',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/past-continuous-or-past-simple'},
+      {title:'Past Perfect',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/past-perfect-simple-i-had-worked',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/b2w003-order-of-events',practiceLabel:'Cambridge English: Order of events / Past Perfect'},
+      {title:'Past Simple или Present Perfect',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/past-simple-or-present-perfect',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/b1g003-past-simple-and-present-perfect',practiceLabel:'Cambridge English: Past Simple vs Present Perfect'}
+    ]},
+    {id:'future',title:'Будущее время и планы',desc:'Will, be going to, Present Continuous и другие способы говорить о будущем.',items:[
+      {title:'Will / shall',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/future-will-and-shall'},
+      {title:'Be going to',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/future-be-going-to-i-am-going-to-work'},
+      {title:'Present Continuous для будущего',level:'B1–B2',ref:'https://dictionary.cambridge.org/uk/grammar/british-grammar/future-present-continuous-to-talk-about-the-future-i-m-working-tomorrow'},
+      {title:'Другие формы будущего',level:'B2–C1',ref:'https://dictionary.cambridge.org/de/grammatik/british-grammar/future-other-expressions-to-talk-about-the-future'}
+    ]},
+    {id:'conditionals',title:'Условные предложения',desc:'Условия и результаты: основные типы, if, unless, should, as long as и wish.',items:[
+      {title:'Основные типы conditionals',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-and-wishes'},
+      {title:'If: условия',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-if'},
+      {title:'Unless / as long as / should',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-and-wishes'},
+      {title:'Типичные ошибки в conditionals',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/conditionals-typical-errors'}
+    ]},
+    {id:'passive',title:'Пассивный залог',desc:'Passive voice в разных временах, с модальными глаголами и с/без исполнителя.',items:[
+      {title:'Пассивный залог',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/passive-forms'},
+      {title:'Passive: употребление',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/passive-uses'},
+      {title:'Have something done',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/have-something-done'}
+    ]},
+    {id:'modals',title:'Модальные глаголы',desc:'Can, could, may, might, must, should, would и значения модальности.',items:[
+      {title:'Модальные глаголы: система',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/modality-forms'},
+      {title:'Значения: возможность, необходимость, уверенность',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/modality-meanings-and-uses'},
+      {title:'Модальные формы во времени',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/modality-tense'},
+      {title:'Can / could / may / might',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/modality-forms'}
+    ]},
+    {id:'reported',title:'Косвенная речь',desc:'Reported speech: утверждения, вопросы, команды, backshift и reporting verbs.',items:[
+      {title:'Reported speech: общая схема',level:'B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/reported'},
+      {title:'Косвенные утверждения, вопросы и команды',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/reported-speech-indirect-speech'},
+      {title:'Reporting verbs',level:'B2–C1',ref:'https://dictionary.cambridge.org/us/grammar/british-grammar/reporting-verbs'}
+    ]},
+    {id:'verb-patterns',title:'Глагольные конструкции',desc:'Infinitive, gerund, verb + -ing / to-infinitive и другие модели.',items:[
+      {title:'Infinitive с to и без to',level:'B1–B2',ref:'https://dictionary.cambridge.org/uk/grammar/british-grammar/infinitives-and-'},
+      {title:'Verb + -ing или to-infinitive',level:'B2–C1',ref:'https://dictionary.cambridge.org/uk/grammar/british-grammar/verb-patterns-verb-'},
+      {title:'Gerund после глаголов и предлогов',level:'B2–C1',ref:'https://dictionary.cambridge.org/uk/grammar/british-grammar/verb-patterns-verb-'}
+    ]},
+    {id:'relative',title:'Относительные предложения',desc:'Defining / non-defining relative clauses и relative pronouns.',items:[
+      {title:'Relative clauses',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/relative-clauses',practice:'https://www.cambridgeenglish.org/learning-english/activities-for-learners/b1g002-relative-pronouns',practiceLabel:'Cambridge English: Relative pronouns'},
+      {title:'Defining и non-defining',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/relative-clauses-defining-and-non-defining'},
+      {title:'Relative clauses: типичные ошибки',level:'B2–C1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/relative-clauses-typical-errors'}
+    ]},
+    {id:'questions-negation',title:'Вопросы и отрицание',desc:'Yes/no и wh-вопросы, вспомогательные глаголы, отрицательные конструкции.',items:[
+      {title:'Yes / No questions',level:'A2–B1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/questions'},
+      {title:'Wh-questions',level:'A2–B1',ref:'https://dictionary.cambridge.org/grammar/british-grammar/wh-questions'},
+      {title:'Отрицательные предложения',level:'B1–B2',ref:'https://dictionary.cambridge.org/grammar/british-grammar/negation'}
+    ]}
+  ];
+
+  // Встроенная практика Via Classica: оригинальные короткие задания,
+  // не выдаваемые за материалы Cambridge. Это второй слой после правила.
+  const GRAMMAR_PRACTICE={
+  "Present Simple и Present Continuous": [
+    {
+      "type": "mcq",
+      "q": "Look! The children ___ in the garden.",
+      "opts": [
+        "play",
+        "are playing",
+        "plays",
+        "have played"
+      ],
+      "a": "are playing",
+      "why": "Look! указывает на действие, происходящее сейчас, поэтому нужен Present Continuous.",
+      "ex": "Look! The children are playing in the garden."
+    },
+    {
+      "type": "mcq",
+      "q": "My sister usually ___ to school by bus.",
+      "opts": [
+        "go",
+        "is going",
+        "goes",
+        "has gone"
+      ],
+      "a": "goes",
+      "why": "usually обозначает регулярное действие; в 3-м лице единственного числа нужен goes.",
+      "ex": "My sister usually goes to school by bus."
+    },
+    {
+      "type": "mcq",
+      "q": "Why ___ you ___ so fast today?",
+      "opts": [
+        "do / walk",
+        "are / walking",
+        "have / walked",
+        "did / walk"
+      ],
+      "a": "are / walking",
+      "why": "today здесь описывает происходящую сейчас ситуацию, поэтому используется Present Continuous.",
+      "ex": "Why are you walking so fast today?"
+    },
+    {
+      "type": "mcq",
+      "q": "Water ___ at 100°C.",
+      "opts": [
+        "is boiling",
+        "boils",
+        "has boiled",
+        "boiled"
+      ],
+      "a": "boils",
+      "why": "Это общеизвестный факт, поэтому используется Present Simple.",
+      "ex": "Water boils at 100°C."
+    },
+    {
+      "type": "mcq",
+      "q": "I ___ my keys. Can you help me look for them?",
+      "opts": [
+        "lose",
+        "am losing",
+        "have lost",
+        "lost"
+      ],
+      "a": "have lost",
+      "why": "Результат потери важен сейчас; Present Perfect связывает прошлое действие с настоящим результатом.",
+      "ex": "I have lost my keys."
+    }
+  ],
+  "Present Perfect": [
+    {
+      "type": "mcq",
+      "q": "She ___ three emails this morning.",
+      "opts": [
+        "writes",
+        "wrote",
+        "has written",
+        "is writing"
+      ],
+      "a": "has written",
+      "why": "Речь идёт о результате к настоящему моменту; период this morning представлен как ещё не завершённый.",
+      "ex": "She has written three emails this morning."
+    },
+    {
+      "type": "mcq",
+      "q": "___ you ever ___ Rome?",
+      "opts": [
+        "Did / visit",
+        "Have / visited",
+        "Are / visiting",
+        "Do / visit"
+      ],
+      "a": "Have / visited",
+      "why": "ever в вопросе об опыте до настоящего момента требует Present Perfect.",
+      "ex": "Have you ever visited Rome?"
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ here since 2022.",
+      "opts": [
+        "live",
+        "lived",
+        "have lived",
+        "are living"
+      ],
+      "a": "have lived",
+      "why": "since задаёт начальную точку периода, продолжающегося до настоящего; нужен Present Perfect.",
+      "ex": "We have lived here since 2022."
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ just ___ the door.",
+      "opts": [
+        "did / close",
+        "has / closed",
+        "is / closing",
+        "does / close"
+      ],
+      "a": "has / closed",
+      "why": "just часто используется с Present Perfect для только что завершённого действия.",
+      "ex": "He has just closed the door."
+    },
+    {
+      "type": "mcq",
+      "q": "I ___ this book twice.",
+      "opts": [
+        "read",
+        "have read",
+        "am reading",
+        "was reading"
+      ],
+      "a": "have read",
+      "why": "Два завершённых опыта без указания конкретного момента можно выразить Present Perfect.",
+      "ex": "I have read this book twice."
+    }
+  ],
+  "Past Simple": [
+    {
+      "type": "mcq",
+      "q": "We ___ the museum yesterday.",
+      "opts": [
+        "visit",
+        "visited",
+        "have visited",
+        "are visiting"
+      ],
+      "a": "visited",
+      "why": "yesterday обозначает завершённый момент в прошлом, поэтому нужен Past Simple.",
+      "ex": "We visited the museum yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ me last night.",
+      "opts": [
+        "calls",
+        "called",
+        "has called",
+        "is calling"
+      ],
+      "a": "called",
+      "why": "last night — завершённый период в прошлом.",
+      "ex": "She called me last night."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ home at midnight.",
+      "opts": [
+        "come",
+        "came",
+        "have come",
+        "are coming"
+      ],
+      "a": "came",
+      "why": "Событие завершено в прошлом и относится к конкретному моменту.",
+      "ex": "They came home at midnight."
+    },
+    {
+      "type": "mcq",
+      "q": "I ___ my first Latin lesson when I was ten.",
+      "opts": [
+        "start",
+        "started",
+        "have started",
+        "am starting"
+      ],
+      "a": "started",
+      "why": "when I was ten задаёт завершённый период в прошлом.",
+      "ex": "I started my first Latin lesson when I was ten."
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ the answer but said nothing.",
+      "opts": [
+        "knows",
+        "knew",
+        "has known",
+        "is knowing"
+      ],
+      "a": "knew",
+      "why": "Оба действия относятся к завершённой ситуации в прошлом.",
+      "ex": "He knew the answer but said nothing."
+    }
+  ],
+  "Past Continuous или Past Simple": [
+    {
+      "type": "mcq",
+      "q": "When I saw Anna, she ___ across the square.",
+      "opts": [
+        "walked",
+        "was walking",
+        "has walked",
+        "walks"
+      ],
+      "a": "was walking",
+      "why": "Действие было в процессе в момент другого прошлого события.",
+      "ex": "When I saw Anna, she was walking across the square."
+    },
+    {
+      "type": "mcq",
+      "q": "The lights ___ while we were having dinner.",
+      "opts": [
+        "went out",
+        "were going out",
+        "have gone out",
+        "go out"
+      ],
+      "a": "went out",
+      "why": "Короткое завершённое событие прервало продолжающееся действие.",
+      "ex": "The lights went out while we were having dinner."
+    },
+    {
+      "type": "mcq",
+      "q": "What ___ you ___ at 10 last night?",
+      "opts": [
+        "did / do",
+        "were / doing",
+        "have / done",
+        "do / do"
+      ],
+      "a": "were / doing",
+      "why": "Вопрос о действии, происходившем в конкретный момент прошлого.",
+      "ex": "What were you doing at 10 last night?"
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ the book, closed it, and left.",
+      "opts": [
+        "was reading",
+        "read",
+        "has read",
+        "reads"
+      ],
+      "a": "read",
+      "why": "Здесь перечисляются последовательные завершённые события, поэтому Past Simple.",
+      "ex": "He read the book, closed it, and left."
+    },
+    {
+      "type": "mcq",
+      "q": "While Maria ___, her brother was cooking.",
+      "opts": [
+        "studied",
+        "was studying",
+        "has studied",
+        "studies"
+      ],
+      "a": "was studying",
+      "why": "Два длительных параллельных действия в прошлом требуют Past Continuous.",
+      "ex": "While Maria was studying, her brother was cooking."
+    }
+  ],
+  "Past Perfect": [
+    {
+      "type": "mcq",
+      "q": "When we arrived, the film ___.",
+      "opts": [
+        "started",
+        "had started",
+        "has started",
+        "was starting"
+      ],
+      "a": "had started",
+      "why": "Фильм начался раньше другого прошлого события — нашего прихода.",
+      "ex": "When we arrived, the film had started."
+    },
+    {
+      "type": "mcq",
+      "q": "She was tired because she ___ badly the night before.",
+      "opts": [
+        "slept",
+        "had slept",
+        "has slept",
+        "was sleeping"
+      ],
+      "a": "had slept",
+      "why": "Плохой сон произошёл до состояния усталости в прошлом.",
+      "ex": "She was tired because she had slept badly the night before."
+    },
+    {
+      "type": "mcq",
+      "q": "By the time I got there, they ___.",
+      "opts": [
+        "left",
+        "had left",
+        "have left",
+        "are leaving"
+      ],
+      "a": "had left",
+      "why": "Уход произошёл до момента моего прибытия в прошлом.",
+      "ex": "By the time I got there, they had left."
+    },
+    {
+      "type": "mcq",
+      "q": "He knew the city well because he ___ there for years.",
+      "opts": [
+        "lived",
+        "had lived",
+        "has lived",
+        "was living"
+      ],
+      "a": "had lived",
+      "why": "Проживание предшествует другому прошлому моменту, обозначенному knew.",
+      "ex": "He knew the city well because he had lived there for years."
+    },
+    {
+      "type": "mcq",
+      "q": "After we ___ the work, we went home.",
+      "opts": [
+        "finished",
+        "had finished",
+        "have finished",
+        "finish"
+      ],
+      "a": "had finished",
+      "why": "Завершение работы произошло раньше ухода домой; Past Perfect подчёркивает последовательность.",
+      "ex": "After we had finished the work, we went home."
+    }
+  ],
+  "Will / shall": [
+    {
+      "type": "mcq",
+      "q": "I think it ___ rain later.",
+      "opts": [
+        "will",
+        "is",
+        "has",
+        "did"
+      ],
+      "a": "will",
+      "why": "Will часто используется для прогнозов и предположений о будущем.",
+      "ex": "I think it will rain later."
+    },
+    {
+      "type": "mcq",
+      "q": "“The phone is ringing.” “I ___ answer it.”",
+      "opts": [
+        "will",
+        "am going",
+        "have",
+        "did"
+      ],
+      "a": "will",
+      "why": "Will может выражать решение, принятое в момент речи.",
+      "ex": "I will answer it."
+    },
+    {
+      "type": "mcq",
+      "q": "___ we start with the first question?",
+      "opts": [
+        "Shall",
+        "Will",
+        "Did",
+        "Have"
+      ],
+      "a": "Shall",
+      "why": "Shall с we часто используется для предложений и вопросов о совместном действии.",
+      "ex": "Shall we start with the first question?"
+    },
+    {
+      "type": "mcq",
+      "q": "I’m sure she ___ understand the problem.",
+      "opts": [
+        "will",
+        "is",
+        "does",
+        "has"
+      ],
+      "a": "will",
+      "why": "Это уверенный прогноз о будущем.",
+      "ex": "I’m sure she will understand the problem."
+    },
+    {
+      "type": "mcq",
+      "q": "___ I open the window?",
+      "opts": [
+        "Shall",
+        "Did",
+        "Have",
+        "Was"
+      ],
+      "a": "Shall",
+      "why": "Shall I...? употребляется для предложения сделать что-либо или спросить, что делать.",
+      "ex": "Shall I open the window?"
+    }
+  ],
+  "Основные типы conditionals": [
+    {
+      "type": "mcq",
+      "q": "If you heat ice, it ___.",
+      "opts": [
+        "melts",
+        "will melt",
+        "melted",
+        "would melt"
+      ],
+      "a": "melts",
+      "why": "Это общее закономерное условие, поэтому используется zero conditional.",
+      "ex": "If you heat ice, it melts."
+    },
+    {
+      "type": "mcq",
+      "q": "If I have time tonight, I ___ you.",
+      "opts": [
+        "call",
+        "called",
+        "will call",
+        "would call"
+      ],
+      "a": "will call",
+      "why": "Реальное возможное условие в будущем: If + Present, will + infinitive.",
+      "ex": "If I have time tonight, I will call you."
+    },
+    {
+      "type": "mcq",
+      "q": "If I were you, I ___ earlier.",
+      "opts": [
+        "leave",
+        "will leave",
+        "would leave",
+        "left"
+      ],
+      "a": "would leave",
+      "why": "Совет в воображаемой ситуации строится как second conditional.",
+      "ex": "If I were you, I would leave earlier."
+    },
+    {
+      "type": "mcq",
+      "q": "If she had studied harder, she ___ the exam.",
+      "opts": [
+        "passes",
+        "will pass",
+        "would have passed",
+        "passed"
+      ],
+      "a": "would have passed",
+      "why": "Нереальное условие в прошлом требует third conditional: had + V3 / would have + V3.",
+      "ex": "If she had studied harder, she would have passed the exam."
+    },
+    {
+      "type": "mcq",
+      "q": "If you mix blue and yellow, you ___.",
+      "opts": [
+        "get green",
+        "will get green",
+        "would get green",
+        "got green"
+      ],
+      "a": "get green",
+      "why": "Общая закономерность — zero conditional.",
+      "ex": "If you mix blue and yellow, you get green."
+    }
+  ],
+  "Пассивный залог": [
+    {
+      "type": "mcq",
+      "q": "The new library ___ next year.",
+      "opts": [
+        "will open",
+        "will be opened",
+        "opens",
+        "opened"
+      ],
+      "a": "will be opened",
+      "why": "Библиотека получает действие; для будущего Passive используется will be + V3.",
+      "ex": "The new library will be opened next year."
+    },
+    {
+      "type": "mcq",
+      "q": "English ___ in many countries.",
+      "opts": [
+        "speaks",
+        "is spoken",
+        "spoke",
+        "is speaking"
+      ],
+      "a": "is spoken",
+      "why": "English является объектом действия; это Present Simple Passive.",
+      "ex": "English is spoken in many countries."
+    },
+    {
+      "type": "mcq",
+      "q": "The letter ___ yesterday.",
+      "opts": [
+        "sent",
+        "was sent",
+        "is sent",
+        "has sent"
+      ],
+      "a": "was sent",
+      "why": "Завершённое действие в прошлом в Passive: was/were + V3.",
+      "ex": "The letter was sent yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "The problem must ___ immediately.",
+      "opts": [
+        "solve",
+        "be solved",
+        "be solving",
+        "solved"
+      ],
+      "a": "be solved",
+      "why": "После modal + Passive используется modal + be + V3.",
+      "ex": "The problem must be solved immediately."
+    },
+    {
+      "type": "mcq",
+      "q": "The results have ___ published.",
+      "opts": [
+        "be",
+        "been",
+        "being",
+        "was"
+      ],
+      "a": "been",
+      "why": "Present Perfect Passive: have/has + been + V3.",
+      "ex": "The results have been published."
+    }
+  ],
+  "Can / could / may / might": [
+    {
+      "type": "mcq",
+      "q": "You ___ use my dictionary if you need it.",
+      "opts": [
+        "can",
+        "must",
+        "should",
+        "would"
+      ],
+      "a": "can",
+      "why": "can здесь выражает разрешение/возможность.",
+      "ex": "You can use my dictionary if you need it."
+    },
+    {
+      "type": "mcq",
+      "q": "When I was five, I ___ already read simple books.",
+      "opts": [
+        "can",
+        "could",
+        "may",
+        "must"
+      ],
+      "a": "could",
+      "why": "Could используется для способности в прошлом.",
+      "ex": "When I was five, I could already read simple books."
+    },
+    {
+      "type": "mcq",
+      "q": "It ___ rain later, so take an umbrella.",
+      "opts": [
+        "might",
+        "must",
+        "can’t",
+        "shouldn’t"
+      ],
+      "a": "might",
+      "why": "might выражает возможность, а не уверенность.",
+      "ex": "It might rain later."
+    },
+    {
+      "type": "mcq",
+      "q": "___ I ask you a question?",
+      "opts": [
+        "May",
+        "Must",
+        "Should",
+        "Would"
+      ],
+      "a": "May",
+      "why": "May I...? — вежливая формула запроса разрешения.",
+      "ex": "May I ask you a question?"
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ be at home; the lights are on.",
+      "opts": [
+        "might",
+        "may",
+        "can",
+        "must"
+      ],
+      "a": "must",
+      "why": "must здесь выражает логический вывод с высокой уверенностью.",
+      "ex": "She must be at home; the lights are on."
+    }
+  ],
+  "Reported speech: общая схема": [
+    {
+      "type": "mcq",
+      "q": "Direct: “I am tired.” → She said that she ___.",
+      "opts": [
+        "is tired",
+        "was tired",
+        "has been tired",
+        "will be tired"
+      ],
+      "a": "was tired",
+      "why": "После said в повествовании о прошлом Present обычно сдвигается в Past.",
+      "ex": "She said that she was tired."
+    },
+    {
+      "type": "mcq",
+      "q": "Direct: “I have finished.” → He said that he ___.",
+      "opts": [
+        "finished",
+        "has finished",
+        "had finished",
+        "was finishing"
+      ],
+      "a": "had finished",
+      "why": "Present Perfect обычно сдвигается в Past Perfect после прошедшего reporting verb.",
+      "ex": "He said that he had finished."
+    },
+    {
+      "type": "mcq",
+      "q": "Direct: “I will call you.” → She said she ___ me.",
+      "opts": [
+        "will call",
+        "would call",
+        "called",
+        "has called"
+      ],
+      "a": "would call",
+      "why": "will обычно сдвигается в would в косвенной речи с прошедшим reporting verb.",
+      "ex": "She said she would call me."
+    },
+    {
+      "type": "mcq",
+      "q": "Direct: “I saw him yesterday.” → He said he had seen him ___.",
+      "opts": [
+        "tomorrow",
+        "the day before",
+        "next week",
+        "now"
+      ],
+      "a": "the day before",
+      "why": "yesterday при переносе точки отсчёта назад становится the day before.",
+      "ex": "He said he had seen him the day before."
+    },
+    {
+      "type": "mcq",
+      "q": "Direct: “I can swim.” → She said she ___ swim.",
+      "opts": [
+        "can",
+        "could",
+        "may",
+        "must"
+      ],
+      "a": "could",
+      "why": "can при backshift обычно переходит в could.",
+      "ex": "She said she could swim."
+    }
+  ],
+  "Verb + -ing или to-infinitive": [
+    {
+      "type": "mcq",
+      "q": "I enjoy ___ historical novels.",
+      "opts": [
+        "read",
+        "reading",
+        "to read",
+        "to reading"
+      ],
+      "a": "reading",
+      "why": "После enjoy используется gerund (-ing), а не to-infinitive.",
+      "ex": "I enjoy reading historical novels."
+    },
+    {
+      "type": "mcq",
+      "q": "She decided ___ abroad.",
+      "opts": [
+        "study",
+        "studying",
+        "to study",
+        "to studying"
+      ],
+      "a": "to study",
+      "why": "decide требует to-infinitive.",
+      "ex": "She decided to study abroad."
+    },
+    {
+      "type": "mcq",
+      "q": "They avoided ___ about the problem.",
+      "opts": [
+        "talk",
+        "to talk",
+        "talking",
+        "to talking"
+      ],
+      "a": "talking",
+      "why": "avoid требует -ing form.",
+      "ex": "They avoided talking about the problem."
+    },
+    {
+      "type": "mcq",
+      "q": "I hope ___ you soon.",
+      "opts": [
+        "see",
+        "seeing",
+        "to see",
+        "to seeing"
+      ],
+      "a": "to see",
+      "why": "hope обычно требует to-infinitive.",
+      "ex": "I hope to see you soon."
+    },
+    {
+      "type": "mcq",
+      "q": "He suggested ___ earlier.",
+      "opts": [
+        "leave",
+        "to leave",
+        "leaving",
+        "to leaving"
+      ],
+      "a": "leaving",
+      "why": "suggest используется с gerund, не с to-infinitive.",
+      "ex": "He suggested leaving earlier."
+    }
+  ],
+  "Relative clauses": [
+    {
+      "type": "mcq",
+      "q": "The woman ___ lives next door is a doctor.",
+      "opts": [
+        "which",
+        "who",
+        "where",
+        "whose"
+      ],
+      "a": "who",
+      "why": "Для человека как подлежащего relative clause используется who.",
+      "ex": "The woman who lives next door is a doctor."
+    },
+    {
+      "type": "mcq",
+      "q": "This is the book ___ I told you about.",
+      "opts": [
+        "who",
+        "where",
+        "which",
+        "whose"
+      ],
+      "a": "which",
+      "why": "Book — неодушевлённый предмет; в defining relative clause подходит which.",
+      "ex": "This is the book which I told you about."
+    },
+    {
+      "type": "mcq",
+      "q": "That is the house ___ roof was damaged.",
+      "opts": [
+        "who",
+        "which",
+        "whose",
+        "where"
+      ],
+      "a": "whose",
+      "why": "whose выражает принадлежность: roof принадлежит house.",
+      "ex": "That is the house whose roof was damaged."
+    },
+    {
+      "type": "mcq",
+      "q": "The café ___ we met has closed.",
+      "opts": [
+        "who",
+        "where",
+        "whose",
+        "which"
+      ],
+      "a": "where",
+      "why": "Для места, в котором произошло действие, естественно where.",
+      "ex": "The café where we met has closed."
+    },
+    {
+      "type": "mcq",
+      "q": "The student ___ essay won the prize was delighted.",
+      "opts": [
+        "who",
+        "whose",
+        "which",
+        "where"
+      ],
+      "a": "whose",
+      "why": "whose связывает student с принадлежащим ему essay.",
+      "ex": "The student whose essay won the prize was delighted."
+    }
+  ],
+  "Yes / No questions": [
+    {
+      "type": "mcq",
+      "q": "___ you speak Italian?",
+      "opts": [
+        "Are",
+        "Do",
+        "Have",
+        "Did"
+      ],
+      "a": "Do",
+      "why": "В Present Simple с you нужен вспомогательный do.",
+      "ex": "Do you speak Italian?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ she working now?",
+      "opts": [
+        "Does",
+        "Is",
+        "Has",
+        "Did"
+      ],
+      "a": "Is",
+      "why": "Present Continuous строится с be + -ing; для she нужен is.",
+      "ex": "Is she working now?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ they finished the task?",
+      "opts": [
+        "Did",
+        "Do",
+        "Have",
+        "Are"
+      ],
+      "a": "Have",
+      "why": "Present Perfect в вопросе строится с have/has + V3.",
+      "ex": "Have they finished the task?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ he go to the lecture yesterday?",
+      "opts": [
+        "Does",
+        "Did",
+        "Has",
+        "Is"
+      ],
+      "a": "Did",
+      "why": "Past Simple question использует did + infinitive.",
+      "ex": "Did he go to the lecture yesterday?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ you ever been to Rome?",
+      "opts": [
+        "Did",
+        "Do",
+        "Have",
+        "Are"
+      ],
+      "a": "Have",
+      "why": "ever been указывает на Present Perfect: Have you ever been...?",
+      "ex": "Have you ever been to Rome?"
+    }
+  ],
+  "Present Perfect Continuous": [
+    {
+      "type": "mcq",
+      "q": "I ___ for two hours, so I need a break.",
+      "opts": [
+        "study",
+        "studied",
+        "have been studying",
+        "am studying"
+      ],
+      "a": "have been studying",
+      "why": "Действие началось в прошлом и продолжается до настоящего; важна длительность.",
+      "ex": "I have been studying for two hours, so I need a break."
+    },
+    {
+      "type": "mcq",
+      "q": "How long ___ you ___ English?",
+      "opts": [
+        "do / learn",
+        "have / been learning",
+        "did / learn",
+        "are / learning"
+      ],
+      "a": "have / been learning",
+      "why": "How long + действие, продолжающееся до настоящего, обычно требует Present Perfect Continuous.",
+      "ex": "How long have you been learning English?"
+    },
+    {
+      "type": "mcq",
+      "q": "She is tired because she ___.",
+      "opts": [
+        "has been running",
+        "ran",
+        "is running",
+        "has run"
+      ],
+      "a": "has been running",
+      "why": "Фокус на недавней продолжающейся активности и её нынешнем результате.",
+      "ex": "She is tired because she has been running."
+    },
+    {
+      "type": "mcq",
+      "q": "It ___ all morning, and the streets are wet.",
+      "opts": [
+        "rained",
+        "has been raining",
+        "rains",
+        "was raining"
+      ],
+      "a": "has been raining",
+      "why": "Действие происходило в течение периода до настоящего и оставило видимый результат.",
+      "ex": "It has been raining all morning, and the streets are wet."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ tennis since 4 p.m.",
+      "opts": [
+        "play",
+        "played",
+        "have been playing",
+        "are played"
+      ],
+      "a": "have been playing",
+      "why": "Since задаёт начало длительности, которая продолжается до настоящего.",
+      "ex": "They have been playing tennis since 4 p.m."
+    }
+  ],
+  "Be going to": [
+    {
+      "type": "mcq",
+      "q": "Look at those clouds! It ___.",
+      "opts": [
+        "is going to rain",
+        "will rained",
+        "rains",
+        "has rained"
+      ],
+      "a": "is going to rain",
+      "why": "Есть явные признаки того, что событие произойдёт.",
+      "ex": "Look at those clouds! It is going to rain."
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ visit the museum this weekend; the tickets are already booked.",
+      "opts": [
+        "are going to",
+        "will have",
+        "did",
+        "have"
+      ],
+      "a": "are going to",
+      "why": "Речь о заранее принятом намерении/плане.",
+      "ex": "We are going to visit the museum this weekend."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ study Classics at university.",
+      "opts": [
+        "is going to",
+        "has",
+        "did",
+        "was"
+      ],
+      "a": "is going to",
+      "why": "Be going to используется для выраженного заранее намерения.",
+      "ex": "She is going to study Classics at university."
+    },
+    {
+      "type": "mcq",
+      "q": "Watch out! You ___.",
+      "opts": [
+        "are going to fall",
+        "will fell",
+        "falling",
+        "fell"
+      ],
+      "a": "are going to fall",
+      "why": "Налицо непосредственные признаки будущего события.",
+      "ex": "Watch out! You are going to fall."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ move house next year; they have already found a new place.",
+      "opts": [
+        "are going to",
+        "will to",
+        "did",
+        "have been"
+      ],
+      "a": "are going to",
+      "why": "План уже сформирован, поэтому подходит be going to.",
+      "ex": "They are going to move house next year."
+    }
+  ],
+  "Present Continuous для будущего": [
+    {
+      "type": "mcq",
+      "q": "I ___ my tutor on Friday afternoon.",
+      "opts": [
+        "meet",
+        "am meeting",
+        "have met",
+        "met"
+      ],
+      "a": "am meeting",
+      "why": "Present Continuous употребляется для договорённостей и назначенных планов.",
+      "ex": "I am meeting my tutor on Friday afternoon."
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ to Rome next month; the flights are booked.",
+      "opts": [
+        "fly",
+        "are flying",
+        "have flown",
+        "flew"
+      ],
+      "a": "are flying",
+      "why": "Есть конкретная договорённость/организованный план на будущее.",
+      "ex": "We are flying to Rome next month."
+    },
+    {
+      "type": "mcq",
+      "q": "What time ___ you ___ the doctor tomorrow?",
+      "opts": [
+        "do / see",
+        "are / seeing",
+        "did / see",
+        "have / seen"
+      ],
+      "a": "are / seeing",
+      "why": "Речь о заранее назначенной встрече.",
+      "ex": "What time are you seeing the doctor tomorrow?"
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ her exam on Monday.",
+      "opts": [
+        "takes",
+        "is taking",
+        "has taken",
+        "took"
+      ],
+      "a": "is taking",
+      "why": "Конкретное запланированное событие в будущем.",
+      "ex": "She is taking her exam on Monday."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ dinner with us tonight.",
+      "opts": [
+        "have",
+        "are having",
+        "had",
+        "have had"
+      ],
+      "a": "are having",
+      "why": "Запланированная личная договорённость передаётся Present Continuous.",
+      "ex": "They are having dinner with us tonight."
+    }
+  ],
+  "Другие формы будущего": [
+    {
+      "type": "mcq",
+      "q": "By next June, I ___ the course.",
+      "opts": [
+        "will finish",
+        "will have finished",
+        "am finishing",
+        "finished"
+      ],
+      "a": "will have finished",
+      "why": "By + будущий момент указывает на действие, которое будет завершено к этому моменту.",
+      "ex": "By next June, I will have finished the course."
+    },
+    {
+      "type": "mcq",
+      "q": "This time tomorrow, we ___.",
+      "opts": [
+        "will travel",
+        "will be travelling",
+        "travelled",
+        "are travel"
+      ],
+      "a": "will be travelling",
+      "why": "This time tomorrow задаёт процесс, который будет идти в определённый момент будущего.",
+      "ex": "This time tomorrow, we will be travelling."
+    },
+    {
+      "type": "mcq",
+      "q": "By 2030, she ___ here for ten years.",
+      "opts": [
+        "will work",
+        "will have been working",
+        "is working",
+        "worked"
+      ],
+      "a": "will have been working",
+      "why": "К будущему моменту важна длительность продолжающегося действия.",
+      "ex": "By 2030, she will have been working here for ten years."
+    },
+    {
+      "type": "mcq",
+      "q": "At 8 p.m. tomorrow, I ___ for my exam.",
+      "opts": [
+        "will study",
+        "will be studying",
+        "have studied",
+        "studied"
+      ],
+      "a": "will be studying",
+      "why": "Действие будет находиться в процессе в конкретный момент будущего.",
+      "ex": "At 8 p.m. tomorrow, I will be studying for my exam."
+    },
+    {
+      "type": "mcq",
+      "q": "By the end of the week, we ___ all the applications.",
+      "opts": [
+        "will review",
+        "will have reviewed",
+        "reviewed",
+        "are reviewing"
+      ],
+      "a": "will have reviewed",
+      "why": "Результат должен быть завершён к обозначенному будущему сроку.",
+      "ex": "By the end of the week, we will have reviewed all the applications."
+    }
+  ],
+  "If: условия": [
+    {
+      "type": "mcq",
+      "q": "If you heat ice, it ___.",
+      "opts": [
+        "melts",
+        "will melt",
+        "melted",
+        "is melting"
+      ],
+      "a": "melts",
+      "why": "Общий факт выражается Zero Conditional: present + present.",
+      "ex": "If you heat ice, it melts."
+    },
+    {
+      "type": "mcq",
+      "q": "If I have time tomorrow, I ___ you.",
+      "opts": [
+        "call",
+        "will call",
+        "called",
+        "would call"
+      ],
+      "a": "will call",
+      "why": "Реальное/возможное условие в будущем: if-clause в Present, результат с will.",
+      "ex": "If I have time tomorrow, I will call you."
+    },
+    {
+      "type": "mcq",
+      "q": "If I ___ more time, I would learn Greek.",
+      "opts": [
+        "have",
+        "had",
+        "will have",
+        "am having"
+      ],
+      "a": "had",
+      "why": "Second Conditional использует Past Simple в условной части.",
+      "ex": "If I had more time, I would learn Greek."
+    },
+    {
+      "type": "mcq",
+      "q": "If she had left earlier, she ___ the train.",
+      "opts": [
+        "would catch",
+        "would have caught",
+        "will catch",
+        "caught"
+      ],
+      "a": "would have caught",
+      "why": "Нереальное условие в прошлом требует Third Conditional: had + V3 → would have + V3.",
+      "ex": "If she had left earlier, she would have caught the train."
+    },
+    {
+      "type": "mcq",
+      "q": "If you don’t hurry, you ___ late.",
+      "opts": [
+        "are",
+        "will be",
+        "would be",
+        "were"
+      ],
+      "a": "will be",
+      "why": "Возможный будущий результат после if + Present выражается will.",
+      "ex": "If you don’t hurry, you will be late."
+    }
+  ],
+  "Unless / as long as / should": [
+    {
+      "type": "mcq",
+      "q": "You can borrow my notes as long as you ___.",
+      "opts": [
+        "return them",
+        "will return them",
+        "returned them",
+        "are return"
+      ],
+      "a": "return them",
+      "why": "После as long as для реального условия используется Present Simple, не will.",
+      "ex": "You can borrow my notes as long as you return them."
+    },
+    {
+      "type": "mcq",
+      "q": "Unless you study, you ___ the material.",
+      "opts": [
+        "won’t understand",
+        "don’t understand",
+        "wouldn’t understand",
+        "didn’t understand"
+      ],
+      "a": "won’t understand",
+      "why": "Unless означает «если не»; условная часть остаётся без will.",
+      "ex": "Unless you study, you won’t understand the material."
+    },
+    {
+      "type": "mcq",
+      "q": "Should you need help, ___ me.",
+      "opts": [
+        "call",
+        "calling",
+        "called",
+        "to call"
+      ],
+      "a": "call",
+      "why": "Инвертированная условная конструкция Should you... соответствует условию и допускает повелительную конструкцию в результате.",
+      "ex": "Should you need help, call me."
+    },
+    {
+      "type": "mcq",
+      "q": "We’ll go for a walk unless it ___.",
+      "opts": [
+        "rains",
+        "will rain",
+        "rained",
+        "would rain"
+      ],
+      "a": "rains",
+      "why": "После unless употребляется обычная форма Present Simple.",
+      "ex": "We’ll go for a walk unless it rains."
+    },
+    {
+      "type": "mcq",
+      "q": "You may use the room as long as you ___.",
+      "opts": [
+        "leave it tidy",
+        "will leave it tidy",
+        "left it tidy",
+        "are leaving it tidy"
+      ],
+      "a": "leave it tidy",
+      "why": "As long as вводит условие без will в условной части.",
+      "ex": "You may use the room as long as you leave it tidy."
+    }
+  ],
+  "Типичные ошибки в conditionals": [
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "If I will see him, I will tell him.",
+        "If I see him, I will tell him.",
+        "If I saw him, I will tell him.",
+        "If I see him, I would tell him."
+      ],
+      "a": "If I see him, I will tell him.",
+      "why": "В First Conditional после if используется Present Simple, а не will.",
+      "ex": "If I see him, I will tell him."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "If I would have more time, I would read more.",
+        "If I had more time, I would read more.",
+        "If I have more time, I would read more.",
+        "If I will have more time, I would read more."
+      ],
+      "a": "If I had more time, I would read more.",
+      "why": "Second Conditional требует Past Simple в if-clause и would в результате.",
+      "ex": "If I had more time, I would read more."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "Unless if you call, I won’t know.",
+        "Unless you call, I won’t know.",
+        "Unless you will call, I won’t know.",
+        "Unless you called, I won’t know."
+      ],
+      "a": "Unless you call, I won’t know.",
+      "why": "Unless уже содержит отрицательное условие; if после него не нужен.",
+      "ex": "Unless you call, I won’t know."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct second conditional.",
+      "opts": [
+        "If she knew, she will tell us.",
+        "If she knows, she would tell us.",
+        "If she knew, she would tell us.",
+        "If she would know, she would tell us."
+      ],
+      "a": "If she knew, she would tell us.",
+      "why": "Второй тип условных: Past Simple + would + infinitive.",
+      "ex": "If she knew, she would tell us."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct third conditional.",
+      "opts": [
+        "If they had left earlier, they would have arrived on time.",
+        "If they would have left earlier, they arrived on time.",
+        "If they left earlier, they would have arrived.",
+        "If they had left earlier, they will arrive on time."
+      ],
+      "a": "If they had left earlier, they would have arrived on time.",
+      "why": "Third Conditional: past perfect в условной части и would have + V3 в результате.",
+      "ex": "If they had left earlier, they would have arrived on time."
+    }
+  ],
+  "Passive: употребление": [
+    {
+      "type": "mcq",
+      "q": "The museum ___ by thousands of visitors every year.",
+      "opts": [
+        "visits",
+        "is visited",
+        "visited",
+        "is visiting"
+      ],
+      "a": "is visited",
+      "why": "Важен объект действия, а не посетители как деятели; используется пассив.",
+      "ex": "The museum is visited by thousands of visitors every year."
+    },
+    {
+      "type": "mcq",
+      "q": "The decision ___ yesterday.",
+      "opts": [
+        "made",
+        "was made",
+        "is making",
+        "has make"
+      ],
+      "a": "was made",
+      "why": "Завершённое действие в прошлом в пассиве: was/were + V3.",
+      "ex": "The decision was made yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "English ___ in many countries.",
+      "opts": [
+        "speaks",
+        "is spoken",
+        "spoke",
+        "is speaking"
+      ],
+      "a": "is spoken",
+      "why": "Язык является объектом действия: его используют/на нём говорят.",
+      "ex": "English is spoken in many countries."
+    },
+    {
+      "type": "mcq",
+      "q": "The documents should ___ before the meeting.",
+      "opts": [
+        "check",
+        "be checked",
+        "be checking",
+        "checked"
+      ],
+      "a": "be checked",
+      "why": "После modal should в пассиве используется be + V3.",
+      "ex": "The documents should be checked before the meeting."
+    },
+    {
+      "type": "mcq",
+      "q": "The building is being ___.",
+      "opts": [
+        "repair",
+        "repaired",
+        "repairing",
+        "repairs"
+      ],
+      "a": "repaired",
+      "why": "Present Continuous Passive: is/are being + V3.",
+      "ex": "The building is being repaired."
+    }
+  ],
+  "Have something done": [
+    {
+      "type": "mcq",
+      "q": "I need to ___ my laptop repaired.",
+      "opts": [
+        "have",
+        "make",
+        "do",
+        "let"
+      ],
+      "a": "have",
+      "why": "Конструкция have + object + past participle означает, что услугу/действие выполняет кто-то другой.",
+      "ex": "I need to have my laptop repaired."
+    },
+    {
+      "type": "mcq",
+      "q": "She had her hair ___ yesterday.",
+      "opts": [
+        "cut",
+        "cutting",
+        "cuts",
+        "to cut"
+      ],
+      "a": "cut",
+      "why": "После object в конструкции have something done используется V3; у cut форма совпадает.",
+      "ex": "She had her hair cut yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "We are going to have the house ___.",
+      "opts": [
+        "painted",
+        "paint",
+        "painting",
+        "to paint"
+      ],
+      "a": "painted",
+      "why": "Be going to + have + object + V3.",
+      "ex": "We are going to have the house painted."
+    },
+    {
+      "type": "mcq",
+      "q": "He had his phone ___ last week.",
+      "opts": [
+        "repair",
+        "repaired",
+        "repairing",
+        "to repair"
+      ],
+      "a": "repaired",
+      "why": "Ремонт выполнял кто-то другой; нужна causative-конструкция have + object + V3.",
+      "ex": "He had his phone repaired last week."
+    },
+    {
+      "type": "mcq",
+      "q": "They have the windows ___ twice a year.",
+      "opts": [
+        "clean",
+        "cleaned",
+        "cleaning",
+        "to clean"
+      ],
+      "a": "cleaned",
+      "why": "Регулярно заказываемую услугу выражает have + object + past participle.",
+      "ex": "They have the windows cleaned twice a year."
+    }
+  ],
+  "Модальные глаголы: система": [
+    {
+      "type": "mcq",
+      "q": "You ___ wear a seat belt in the car.",
+      "opts": [
+        "must",
+        "can",
+        "might",
+        "would"
+      ],
+      "a": "must",
+      "why": "Must выражает сильную необходимость/обязанность.",
+      "ex": "You must wear a seat belt in the car."
+    },
+    {
+      "type": "mcq",
+      "q": "___ I borrow your pen?",
+      "opts": [
+        "May",
+        "Must",
+        "Should",
+        "Would"
+      ],
+      "a": "May",
+      "why": "May I...? — вежливый запрос разрешения.",
+      "ex": "May I borrow your pen?"
+    },
+    {
+      "type": "mcq",
+      "q": "You ___ be tired after such a long journey.",
+      "opts": [
+        "must",
+        "can",
+        "shall",
+        "would"
+      ],
+      "a": "must",
+      "why": "Must может выражать сильный вывод по имеющимся признакам.",
+      "ex": "You must be tired after such a long journey."
+    },
+    {
+      "type": "mcq",
+      "q": "You ___ see a doctor if the pain continues.",
+      "opts": [
+        "should",
+        "can’t",
+        "mustn’t",
+        "would"
+      ],
+      "a": "should",
+      "why": "Should часто используется для совета.",
+      "ex": "You should see a doctor if the pain continues."
+    },
+    {
+      "type": "mcq",
+      "q": "When I was five, I ___ swim.",
+      "opts": [
+        "could",
+        "must",
+        "should",
+        "may"
+      ],
+      "a": "could",
+      "why": "Could выражает способность в прошлом.",
+      "ex": "When I was five, I could swim."
+    }
+  ],
+  "Значения: возможность, необходимость, уверенность": [
+    {
+      "type": "mcq",
+      "q": "Take an umbrella. It ___ rain later.",
+      "opts": [
+        "might",
+        "mustn’t",
+        "can’t",
+        "shouldn’t"
+      ],
+      "a": "might",
+      "why": "Might выражает возможность, но не уверенность.",
+      "ex": "It might rain later."
+    },
+    {
+      "type": "mcq",
+      "q": "He isn’t answering. He ___ be asleep.",
+      "opts": [
+        "might",
+        "mustn’t",
+        "can’t",
+        "needn’t"
+      ],
+      "a": "might",
+      "why": "Might выражает возможное объяснение.",
+      "ex": "He might be asleep."
+    },
+    {
+      "type": "mcq",
+      "q": "She has worked all night. She ___ be exhausted.",
+      "opts": [
+        "must",
+        "may not",
+        "can’t",
+        "would"
+      ],
+      "a": "must",
+      "why": "Здесь говорящий делает сильный вывод на основе фактов.",
+      "ex": "She must be exhausted."
+    },
+    {
+      "type": "mcq",
+      "q": "That ___ be John — he’s abroad.",
+      "opts": [
+        "must",
+        "can’t",
+        "should",
+        "may"
+      ],
+      "a": "can’t",
+      "why": "Can’t выражает невозможность/уверенный вывод о том, что это не так.",
+      "ex": "That can’t be John — he’s abroad."
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ leave now; the film starts in an hour.",
+      "opts": [
+        "needn’t",
+        "must",
+        "can’t",
+        "might"
+      ],
+      "a": "needn’t",
+      "why": "Needn’t выражает отсутствие необходимости.",
+      "ex": "We needn’t leave now; the film starts in an hour."
+    }
+  ],
+  "Модальные формы во времени": [
+    {
+      "type": "mcq",
+      "q": "She ___ have forgotten the meeting.",
+      "opts": [
+        "must",
+        "must to",
+        "musting",
+        "must have"
+      ],
+      "a": "must",
+      "why": "Must + have + V3 выражает вывод о прошлом событии; здесь have уже есть после пропуска в предложении.",
+      "ex": "She must have forgotten the meeting."
+    },
+    {
+      "type": "mcq",
+      "q": "You ___ have told me earlier.",
+      "opts": [
+        "should",
+        "can",
+        "may",
+        "will"
+      ],
+      "a": "should",
+      "why": "Should have + V3 выражает критику или ожидание насчёт прошлого.",
+      "ex": "You should have told me earlier."
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ have taken the wrong train.",
+      "opts": [
+        "might",
+        "mustn’t",
+        "can’t to",
+        "shouldn’t"
+      ],
+      "a": "might",
+      "why": "Might have + V3 выражает возможную причину в прошлом.",
+      "ex": "He might have taken the wrong train."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ have arrived by now.",
+      "opts": [
+        "should",
+        "should to",
+        "can",
+        "mustn’t"
+      ],
+      "a": "should",
+      "why": "Should have + V3 может выражать ожидаемый к настоящему результат.",
+      "ex": "They should have arrived by now."
+    },
+    {
+      "type": "mcq",
+      "q": "You ___ have worried; everything was fine.",
+      "opts": [
+        "needn’t",
+        "must",
+        "can",
+        "will"
+      ],
+      "a": "needn’t",
+      "why": "Needn’t have + V3 означает, что действие в прошлом было ненужным.",
+      "ex": "You needn’t have worried; everything was fine."
+    }
+  ],
+  "Косвенные утверждения, вопросы и команды": [
+    {
+      "type": "mcq",
+      "q": "“I am tired.” → He said that he ___.",
+      "opts": [
+        "is tired",
+        "was tired",
+        "has tired",
+        "tired"
+      ],
+      "a": "was tired",
+      "why": "После прошедшего reporting verb обычный backshift: am → was.",
+      "ex": "He said that he was tired."
+    },
+    {
+      "type": "mcq",
+      "q": "“Are you ready?” → She asked me ___.",
+      "opts": [
+        "was I ready",
+        "if I was ready",
+        "that I was ready",
+        "am I ready"
+      ],
+      "a": "if I was ready",
+      "why": "Косвенный yes/no question строится с if/whether и прямым порядком слов.",
+      "ex": "She asked me if I was ready."
+    },
+    {
+      "type": "mcq",
+      "q": "“Where do you live?” → He asked me ___.",
+      "opts": [
+        "where did I live",
+        "where I lived",
+        "where I live did",
+        "if where I lived"
+      ],
+      "a": "where I lived",
+      "why": "В косвенном wh-вопросе сохраняется wh-слово и используется прямой порядок слов.",
+      "ex": "He asked me where I lived."
+    },
+    {
+      "type": "mcq",
+      "q": "“Close the door.” → She told me ___.",
+      "opts": [
+        "close the door",
+        "to close the door",
+        "that close the door",
+        "closing the door"
+      ],
+      "a": "to close the door",
+      "why": "Команды обычно передаются с tell + object + to-infinitive.",
+      "ex": "She told me to close the door."
+    },
+    {
+      "type": "mcq",
+      "q": "“Don’t touch it.” → He told us ___.",
+      "opts": [
+        "not touch it",
+        "not to touch it",
+        "don’t touch it",
+        "to not touching it"
+      ],
+      "a": "not to touch it",
+      "why": "Отрицательная команда в косвенной речи: not to + infinitive.",
+      "ex": "He told us not to touch it."
+    }
+  ],
+  "Reporting verbs": [
+    {
+      "type": "mcq",
+      "q": "She ___ that she had lost the key.",
+      "opts": [
+        "admitted",
+        "suggested",
+        "ordered",
+        "prevented"
+      ],
+      "a": "admitted",
+      "why": "Admit подходит для признания факта или ошибки.",
+      "ex": "She admitted that she had lost the key."
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ me to apply early.",
+      "opts": [
+        "advised",
+        "explained",
+        "said",
+        "described"
+      ],
+      "a": "advised",
+      "why": "Advise + object + to-infinitive выражает совет.",
+      "ex": "He advised me to apply early."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ to help with the move.",
+      "opts": [
+        "offered",
+        "asked",
+        "warned",
+        "accused"
+      ],
+      "a": "offered",
+      "why": "Offer + to-infinitive используется, когда кто-то предлагает сделать что-либо.",
+      "ex": "They offered to help with the move."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ him not to be late.",
+      "opts": [
+        "warned",
+        "suggested",
+        "said",
+        "explained"
+      ],
+      "a": "warned",
+      "why": "Warn + object + not to-infinitive используется для предупреждения.",
+      "ex": "She warned him not to be late."
+    },
+    {
+      "type": "mcq",
+      "q": "He ___ taking the job.",
+      "opts": [
+        "denied",
+        "ordered",
+        "told",
+        "asked"
+      ],
+      "a": "denied",
+      "why": "Deny обычно сочетается с -ing для отрицания действия.",
+      "ex": "He denied taking the job."
+    }
+  ],
+  "Infinitive с to и без to": [
+    {
+      "type": "mcq",
+      "q": "I want ___ more about the course.",
+      "opts": [
+        "learn",
+        "to learn",
+        "learning",
+        "learned"
+      ],
+      "a": "to learn",
+      "why": "После want используется to-infinitive.",
+      "ex": "I want to learn more about the course."
+    },
+    {
+      "type": "mcq",
+      "q": "You must ___ your passport.",
+      "opts": [
+        "bring",
+        "to bring",
+        "bringing",
+        "brought"
+      ],
+      "a": "bring",
+      "why": "После modal must используется инфинитив без to.",
+      "ex": "You must bring your passport."
+    },
+    {
+      "type": "mcq",
+      "q": "She made me ___ the form again.",
+      "opts": [
+        "complete",
+        "to complete",
+        "completing",
+        "completed"
+      ],
+      "a": "complete",
+      "why": "После make + object используется bare infinitive.",
+      "ex": "She made me complete the form again."
+    },
+    {
+      "type": "mcq",
+      "q": "He agreed ___ us later.",
+      "opts": [
+        "call",
+        "to call",
+        "calling",
+        "called"
+      ],
+      "a": "to call",
+      "why": "Agree обычно сочетается с to-infinitive.",
+      "ex": "He agreed to call us later."
+    },
+    {
+      "type": "mcq",
+      "q": "Let me ___ you.",
+      "opts": [
+        "help",
+        "to help",
+        "helping",
+        "helped"
+      ],
+      "a": "help",
+      "why": "После let + object используется инфинитив без to.",
+      "ex": "Let me help you."
+    }
+  ],
+  "Gerund после глаголов и предлогов": [
+    {
+      "type": "mcq",
+      "q": "She is interested in ___ Latin literature.",
+      "opts": [
+        "study",
+        "to study",
+        "studying",
+        "studied"
+      ],
+      "a": "studying",
+      "why": "После предлога in нужен gerund (-ing).",
+      "ex": "She is interested in studying Latin literature."
+    },
+    {
+      "type": "mcq",
+      "q": "He left without ___ goodbye.",
+      "opts": [
+        "say",
+        "to say",
+        "saying",
+        "said"
+      ],
+      "a": "saying",
+      "why": "После предлога without используется форма -ing.",
+      "ex": "He left without saying goodbye."
+    },
+    {
+      "type": "mcq",
+      "q": "They avoid ___ about politics at work.",
+      "opts": [
+        "talk",
+        "to talk",
+        "talking",
+        "talked"
+      ],
+      "a": "talking",
+      "why": "Avoid требует gerund.",
+      "ex": "They avoid talking about politics at work."
+    },
+    {
+      "type": "mcq",
+      "q": "I’m looking forward to ___ you.",
+      "opts": [
+        "meet",
+        "meeting",
+        "to meet",
+        "met"
+      ],
+      "a": "meeting",
+      "why": "В look forward to слово to является предлогом, поэтому далее нужен -ing.",
+      "ex": "I’m looking forward to meeting you."
+    },
+    {
+      "type": "mcq",
+      "q": "She apologized for ___ late.",
+      "opts": [
+        "arrive",
+        "to arrive",
+        "arriving",
+        "arrived"
+      ],
+      "a": "arriving",
+      "why": "После for используется gerund.",
+      "ex": "She apologized for arriving late."
+    }
+  ],
+  "Defining и non-defining": [
+    {
+      "type": "mcq",
+      "q": "The students ___ passed the exam celebrated together.",
+      "opts": [
+        "which",
+        "who",
+        "where",
+        "whose"
+      ],
+      "a": "who",
+      "why": "Это defining relative clause о людях; who подходит для обозначения группы, о которой идёт речь.",
+      "ex": "The students who passed the exam celebrated together."
+    },
+    {
+      "type": "mcq",
+      "q": "My brother, ___ lives in Rome, is visiting us.",
+      "opts": [
+        "who",
+        "that",
+        "where",
+        "what"
+      ],
+      "a": "who",
+      "why": "В non-defining relative clause после запятых для человека используется who; that здесь не подходит.",
+      "ex": "My brother, who lives in Rome, is visiting us."
+    },
+    {
+      "type": "mcq",
+      "q": "The car ___ we bought last year is already broken.",
+      "opts": [
+        "which",
+        "who",
+        "where",
+        "when"
+      ],
+      "a": "which",
+      "why": "Это defining clause о предмете; which подходит без запятых.",
+      "ex": "The car which we bought last year is already broken."
+    },
+    {
+      "type": "mcq",
+      "q": "Rome, ___ I studied for a year, is still my favourite city.",
+      "opts": [
+        "where",
+        "which",
+        "who",
+        "that"
+      ],
+      "a": "where",
+      "why": "Здесь non-defining clause относится к месту; where указывает на место.",
+      "ex": "Rome, where I studied for a year, is still my favourite city."
+    },
+    {
+      "type": "mcq",
+      "q": "The book, ___ was published in 1920, is rare.",
+      "opts": [
+        "that",
+        "which",
+        "who",
+        "where"
+      ],
+      "a": "which",
+      "why": "Non-defining relative clause для предмета использует which, но не that.",
+      "ex": "The book, which was published in 1920, is rare."
+    }
+  ],
+  "Relative clauses: типичные ошибки": [
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "The man which called is here.",
+        "The man who called is here.",
+        "The man where called is here.",
+        "The man whose called is here."
+      ],
+      "a": "The man who called is here.",
+      "why": "Who используется для людей.",
+      "ex": "The man who called is here."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "The book, that I bought, is old.",
+        "The book, which I bought, is old.",
+        "The book, who I bought, is old.",
+        "The book, where I bought, is old."
+      ],
+      "a": "The book, which I bought, is old.",
+      "why": "В non-defining relative clause that не используется; для предмета нужен which.",
+      "ex": "The book, which I bought, is old."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "This is the place where we met.",
+        "This is the place who we met.",
+        "This is the place which we met there.",
+        "This is the place whose we met."
+      ],
+      "a": "This is the place where we met.",
+      "why": "После where не нужен дополнительный there, а место связывается естественно через where.",
+      "ex": "This is the place where we met."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "The woman whose her son won is pleased.",
+        "The woman whose son won is pleased.",
+        "The woman who son won is pleased.",
+        "The woman which son won is pleased."
+      ],
+      "a": "The woman whose son won is pleased.",
+      "why": "После whose сразу стоит существительное; дополнительное her не нужно.",
+      "ex": "The woman whose son won is pleased."
+    },
+    {
+      "type": "mcq",
+      "q": "Choose the correct sentence.",
+      "opts": [
+        "My car, that is very old, still works.",
+        "My car, which is very old, still works.",
+        "My car, who is very old, still works.",
+        "My car, where is very old, still works."
+      ],
+      "a": "My car, which is very old, still works.",
+      "why": "В non-defining clause используются which/who, но не that.",
+      "ex": "My car, which is very old, still works."
+    }
+  ],
+  "Wh-questions": [
+    {
+      "type": "mcq",
+      "q": "___ did you buy the book?",
+      "opts": [
+        "Where",
+        "Which",
+        "Who",
+        "Whose"
+      ],
+      "a": "Where",
+      "why": "Where спрашивает о месте.",
+      "ex": "Where did you buy the book?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ is your favourite author?",
+      "opts": [
+        "Who",
+        "Where",
+        "When",
+        "Why"
+      ],
+      "a": "Who",
+      "why": "Who спрашивает о человеке.",
+      "ex": "Who is your favourite author?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ did the lesson start?",
+      "opts": [
+        "When",
+        "What",
+        "Who",
+        "Whose"
+      ],
+      "a": "When",
+      "why": "When спрашивает о времени.",
+      "ex": "When did the lesson start?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ are you learning Italian?",
+      "opts": [
+        "Why",
+        "Where",
+        "Who",
+        "Which"
+      ],
+      "a": "Why",
+      "why": "Why спрашивает о причине.",
+      "ex": "Why are you learning Italian?"
+    },
+    {
+      "type": "mcq",
+      "q": "___ book do you want — the red one or the blue one?",
+      "opts": [
+        "Which",
+        "Who",
+        "When",
+        "Why"
+      ],
+      "a": "Which",
+      "why": "Which выбирает один вариант из ограниченного набора.",
+      "ex": "Which book do you want — the red one or the blue one?"
+    }
+  ],
+  "Отрицательные предложения": [
+    {
+      "type": "mcq",
+      "q": "I ___ like coffee.",
+      "opts": [
+        "don’t",
+        "am not",
+        "haven’t",
+        "didn’t"
+      ],
+      "a": "don’t",
+      "why": "Present Simple negative с I: do not / don’t + base verb.",
+      "ex": "I don’t like coffee."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ finished the report yet.",
+      "opts": [
+        "hasn’t",
+        "doesn’t",
+        "isn’t",
+        "didn’t"
+      ],
+      "a": "hasn’t",
+      "why": "Present Perfect negative: has not / hasn’t + V3.",
+      "ex": "She hasn’t finished the report yet."
+    },
+    {
+      "type": "mcq",
+      "q": "They ___ working today.",
+      "opts": [
+        "aren’t",
+        "don’t",
+        "haven’t",
+        "weren’t"
+      ],
+      "a": "aren’t",
+      "why": "Present Continuous negative: are not + -ing.",
+      "ex": "They aren’t working today."
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ see him yesterday.",
+      "opts": [
+        "didn’t",
+        "don’t",
+        "haven’t",
+        "aren’t"
+      ],
+      "a": "didn’t",
+      "why": "Past Simple negative: did not + base verb.",
+      "ex": "We didn’t see him yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "There ___ any milk left.",
+      "opts": [
+        "isn’t",
+        "don’t",
+        "aren’t",
+        "hasn’t"
+      ],
+      "a": "isn’t",
+      "why": "Milk неисчисляемое; используется there isn’t.",
+      "ex": "There isn’t any milk left."
+    }
+  ],
+  "Past Simple или Present Perfect": [
+    {
+      "type": "mcq",
+      "q": "I ___ Rome in 2024.",
+      "opts": [
+        "have visited",
+        "visited",
+        "have been visiting",
+        "am visiting"
+      ],
+      "a": "visited",
+      "why": "Указан конкретный завершённый момент в прошлом, поэтому нужен Past Simple.",
+      "ex": "I visited Rome in 2024."
+    },
+    {
+      "type": "mcq",
+      "q": "I ___ Rome twice.",
+      "opts": [
+        "visited",
+        "have visited",
+        "am visiting",
+        "was visiting"
+      ],
+      "a": "have visited",
+      "why": "Речь об опыте до настоящего без конкретного момента; подходит Present Perfect.",
+      "ex": "I have visited Rome twice."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ her essay yesterday.",
+      "opts": [
+        "has finished",
+        "finished",
+        "has been finishing",
+        "finishes"
+      ],
+      "a": "finished",
+      "why": "Yesterday обозначает завершённое время в прошлом.",
+      "ex": "She finished her essay yesterday."
+    },
+    {
+      "type": "mcq",
+      "q": "She ___ her essay already.",
+      "opts": [
+        "finished",
+        "has finished",
+        "was finishing",
+        "finishes"
+      ],
+      "a": "has finished",
+      "why": "Already подчёркивает результат к настоящему моменту без конкретной прошлой даты.",
+      "ex": "She has finished her essay already."
+    },
+    {
+      "type": "mcq",
+      "q": "We ___ here since Monday.",
+      "opts": [
+        "were",
+        "have been",
+        "are",
+        "had been"
+      ],
+      "a": "have been",
+      "why": "Since Monday задаёт период, продолжающийся до настоящего.",
+      "ex": "We have been here since Monday."
+    }
+  ]
+};
+
+function grammarPracticeFor(title){
+    const key=[...String(title)].map(ch=>ch.codePointAt(0).toString(16)).join('');
+    return (GRAMMAR_PRACTICE[title]||[]).map((t,i)=>({...t,id:'grammar-'+key+'-'+i,topic:'Грамматика · '+title}));
+  }
+
+
+  function grammarStatus(title){
+    const topic='Грамматика · '+title;
+    const h=st.history.filter(x=>x&&x.topic===topic&&(x.correct===true||x.correct===false));
+    if(!h.length)return 'ещё не тренировалась';
+    const last=h.slice(-5), good=last.filter(x=>x.correct===true).length;
+    return 'последние 5: '+good+'/'+last.length;
+  }
+
+  function grammarMapMarkup(){
+    const groups=GRAMMAR_MAP.map(g=>'<details class="grammar-group"><summary><span><b>'+esc(g.title)+'</b><small>'+esc(g.desc)+'</small></span><em>'+g.items.length+' темы</em></summary><div class="grammar-items">'+g.items.map(i=>'<div class="grammar-item"><div><b>'+esc(i.title)+'</b><span>'+esc(i.level)+'</span><span class="grammar-progress-badge">'+grammarStatus(i.title)+'</span></div><div class="grammar-links"><a class="text-link" href="'+esc(i.ref)+'" target="_blank" rel="noopener">Правило Cambridge</a>'+(grammarPracticeFor(i.title).length?'<button type="button" class="primary local-grammar-practice" data-grammar-title="'+esc(i.title)+'">Встроенная практика · '+grammarPracticeFor(i.title).length+'</button>':'')+(i.practice?'<a class="primary" href="'+esc(i.practice)+'" target="_blank" rel="noopener">Практика Cambridge</a>':'<small>Официальное упражнение Cambridge для этой темы не привязано.</small>')+'</div>'+(i.practiceLabel?'<p>'+esc(i.practiceLabel)+'</p>':'')+'</div>').join('')+'</div></details>').join('');
+    return '<section class="grammar-map"><div class="grammar-map-head"><div><span>ГРАММАТИЧЕСКАЯ КАРТА</span><h4>Конкретные темы вместо экзаменационных частей</h4><p>Эта карта — основной учебный слой: каждая из 34 тем имеет встроенную авторскую практику, а официальные материалы Cambridge остаются отдельным справочным источником.</p></div><div class="grammar-map-count">'+GRAMMAR_MAP.reduce((n,g)=>n+g.items.length,0)+' тем · '+Object.values(GRAMMAR_PRACTICE).reduce((n,p)=>n+p.length,0)+' заданий</div></div><input id="grammarSearch" class="topic-search" placeholder="Например: present perfect, conditionals, passive…"><div id="grammarMapList">'+groups+'</div><div class="topic-note">Все 34 темы имеют встроенную практику Via Classica. Cambridge используется как официальный справочник и дополнительная практика; вопросы Via Classica не выдаются за материалы Cambridge.</div></section>';
+  }
+
+  function bindGrammarMap(){
+    const input=$('#grammarSearch');
+    if(!input)return;
+    input.oninput=()=>{
+      const q=input.value.trim().toLowerCase();
+      document.querySelectorAll('.grammar-group').forEach(group=>{
+        const items=[...group.querySelectorAll('.grammar-item')];
+        if(!q){
+          items.forEach(item=>item.hidden=false);
+          group.hidden=false;
+          return;
+        }
+        let matches=0;
+        items.forEach(item=>{
+          const hit=item.textContent.toLowerCase().includes(q);
+          item.hidden=!hit;
+          if(hit)matches++;
+        });
+        group.hidden=matches===0;
+        if(matches)group.open=true;
+      });
+    };
+    document.querySelectorAll('.local-grammar-practice').forEach(btn=>btn.onclick=()=>{
+      const title=btn.dataset.grammarTitle;
+      startGrammarPractice(title,grammarPracticeFor(title));
+    });
+  }
+
+  function startGrammarPractice(title,pool){
+    mode='manual';
+    manual={topic:'Грамматика · '+title,pool,idx:0,done:0,used:[],answered:0,correct:0,started:Date.now(),isGrammar:true,grammarTitle:title};
+    if(!manual.pool.length){renderTopic();return;}
+    openTraining();
+    renderManualTask(false);
+  }
+
   function renderTopic(){
     nav('english');const box=$('#englishTask');
-    const topics=[...new Set(eligibleBank().map(x=>x.topic))];
-    const body=topics.length ? '<input id="topicSearch" class="topic-search" placeholder="Поиск темы…"><div class="topic-list">'+topics.map(t=>'<button type="button" class="topic-choice" data-topic="'+esc(t)+'"><span>'+esc(topicLabel(t))+'</span><span>→</span></button>').join('')+'</div>' : '<div class="source-task-note source-task-unready"><b>Готовых заданий пока нет</b><p>Банк содержит записи источников. Полностью встроенными сейчас являются только записи с проверенным текстом; остальные проходят в source-assisted режиме через оригинал.</p></div>';
-    box.innerHTML='<div class="english-profile topic-picker"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Выбери тему</h3>'+body+'<p class="topic-note">Все задания здесь взяты из источников; AI не генерирует новые вопросы.</p></div>';
-    document.querySelectorAll('.topic-choice').forEach(b=>b.onclick=()=>startManual(b.dataset.topic));
-    $('#topicSearch').oninput=e=>document.querySelectorAll('.topic-choice').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(e.target.value.toLowerCase()));
+    const labels=new Set(eligibleBank().map(x=>topicLabel(x.topic||'')));
+    const tracks=PEDAGOGICAL_TRACKS.filter(t=>t.match.some(m=>labels.has(m)));
+    const body=tracks.map(t=>{const count=eligibleBank().filter(x=>t.match.includes(topicLabel(x.topic||''))).length;return '<button type="button" class="topic-choice topic-track" data-track="'+esc(t.title)+'"><span><b>'+esc(t.title)+'</b><small>'+esc(t.desc)+'</small></span><em>'+count+' заданий →</em></button>'}).join('');
+    box.innerHTML='<div class="english-profile topic-picker"><span>ТРЕНИРОВКА ПО ТЕМЕ</span><h3>Учебные темы</h3><p class="topic-intro">Сначала — проверенные учебные треки и экзаменационные форматы. Ниже — единая грамматическая карта с 34 конкретными темами и встроенной практикой.</p><input id="topicSearch" class="topic-search" placeholder="Поиск локальной темы…"><div class="topic-list">'+body+'</div>'+grammarMapMarkup()+'<div class="topic-note">Экзаменационные части не выдаются за грамматические темы. Локальная практика запускается только там, где есть проверенная привязка.</div></div>';
+    document.querySelectorAll('.topic-track').forEach(b=>b.onclick=()=>{const track=PEDAGOGICAL_TRACKS.find(t=>t.title===b.dataset.track);if(!track)return;const pool=eligibleBank().filter(x=>track.match.includes(topicLabel(x.topic||'')));startManualPool(track.title,pool)});
+    $('#topicSearch').oninput=e=>document.querySelectorAll('.topic-track').forEach(b=>b.hidden=!b.textContent.toLowerCase().includes(e.target.value.toLowerCase()));
+    bindGrammarMap();
+  }
+  function startManualPool(title,pool){
+    mode='manual';manual={topic:title,pool,idx:0,done:0,used:[],answered:0,correct:0,started:Date.now(),isGrammar:false,grammarTitle:null};
+    if(!manual.pool.length){renderTopic();return;}
+    openTraining();renderManualTask(false);
   }
 
   function startManual(topic){
-    mode='manual';manual={topic,pool:eligibleBank().filter(x=>x.topic===topic),idx:0,done:0,used:[]};
+    mode='manual';manual={topic,pool:eligibleBank().filter(x=>x.topic===topic),idx:0,done:0,used:[],answered:0,correct:0,started:Date.now(),isGrammar:false,grammarTitle:null};
     if(!manual.pool.length)manual.pool=eligibleBank().filter(x=>x.skill===topic);
     if(!manual.pool.length){
       const box=$('#englishTask');
@@ -494,6 +2989,7 @@ if(st.session){st.session.n=Math.floor(st.session.n);st.session.total=Math.floor
   window.showEnglishProfile=()=>{nav('english');renderProfile()};
   window.showEnglishDictionary=()=>{nav('english');renderDictionary()};
   window.showEnglishTopic=()=>{mode='manual';renderTopic()};
+  try{const returnTask=sessionStorage.getItem('viaClassicaReturnTask');if(returnTask){sessionStorage.removeItem('viaClassicaReturnTask');const task=eligibleBank().find(x=>x.id===returnTask);if(task){mode='catalog';current=task;setTimeout(()=>{nav('english');openTraining();renderCurrentTask(false)},0)}}}catch(_){}
   window.initEnglish=render;
   document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('[data-english-action]').forEach(b=>b.addEventListener('click',()=>{
