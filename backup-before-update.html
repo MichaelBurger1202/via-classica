@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Via Classica — резервная копия перед обновлением</title>
+<style>
+:root{color-scheme:light;--ink:#293126;--muted:#65705b;--paper:#f5f2e9;--card:#fffdf7;--line:#dedfce;--accent:#667044}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px}main{max-width:760px;margin:6vh auto;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:clamp(22px,5vw,42px);box-shadow:0 12px 36px #29312612}small{letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}h1{line-height:1.15;font-size:clamp(28px,5vw,42px);margin:12px 0}p{color:var(--muted)}button{border:0;border-radius:999px;padding:14px 20px;background:var(--accent);color:white;font-weight:700;font-size:16px;cursor:pointer;min-height:48px}button:focus-visible{outline:3px solid #aab58a;outline-offset:3px}.note{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#f9f7ef;margin:20px 0}.status{margin-top:16px;overflow-wrap:anywhere}.fine{font-size:13px}
+</style>
+</head>
+<body><main>
+<small>VIA CLASSICA · ПЕРЕД ОБНОВЛЕНИЕМ</small>
+<h1>Сначала сохраним данные</h1>
+<p>Эта страница создаёт резервную копию данных Via Classica, которые браузер хранит на этом сайте: задачи, отметки, ссылки, настройки планера, профиль английского, словарь и историю тренировок.</p>
+<div class="note"><b>Важно:</b> открой эту страницу на том же домене, где сейчас работает Via Classica. Файл создаётся прямо в браузере и никуда не отправляется.</div>
+<button id="backup" type="button">Скачать резервную копию JSON</button>
+<div class="status" id="status" role="status" aria-live="polite"></div>
+<p class="fine">Сохрани файл в надёжное место и не редактируй его вручную. После обновления его можно будет загрузить через раздел «Резервная копия» в Via Classica v14.1.</p>
+</main>
+<script>
+(function(){
+  const button=document.getElementById('backup'),status=document.getElementById('status');
+  button.addEventListener('click',function(){
+    try{
+      const local={};
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(key&&key.startsWith('viaClassica'))local[key]=localStorage.getItem(key);
+      }
+      const payload={format:'via-classica-full-backup-v1',appVersion:'pre-v14',createdAt:new Date().toISOString(),localStorage:local,sessionStorage:{viaClassicaReturnTask:sessionStorage.getItem('viaClassicaReturnTask')}};
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='via-classica-pre-update-backup-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+      status.textContent='Копия подготовлена. Проверь, что файл появился в загрузках.';
+      status.style.color='var(--accent)';
+    }catch(e){status.textContent='Не удалось создать копию: '+String(e&&e.message||e);status.style.color='#a23b32';}
+  });
+})();
+</script>
+</body></html>
