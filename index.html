@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Via Classica — 2026–2029</title>
-<link rel="stylesheet" href="styles.css?v=13.25">
-<link rel="manifest" href="manifest.webmanifest?v=13.25">
+<link rel="stylesheet" href="styles.css?v=14.1">
+<link rel="manifest" href="manifest.webmanifest?v=14.1">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
@@ -47,25 +47,23 @@
       </div>
 
       <div class="planner-controls panel">
-        <div><small class="eyebrow">УМНЫЙ ПЛАНИРОВЩИК</small><h3 id="plannerStatus">Автопланирование включено</h3><p>Невыполненные переносимые задачи перераспределяются с учётом лимита дня. Жёсткие дедлайны не двигаются.</p></div>
-        <div class="planner-actions"><select id="dayMode"><option value="normal">🟡 Обычный день · 2–3 ч</option><option value="light">🟢 Лёгкий день · до 1,5 ч</option><option value="heavy">🔴 Тяжёлый день · 3–4 ч</option><option value="vacation">☀️ Каникулы · до 4 ч</option><option value="festival">🎭 Фестиваль / поездка · минимум</option></select><button class="ghost-dark" id="freezeDay">💤 Заморозить сегодня</button><button class="ghost-dark" id="freezePeriod">⏸ Заморозить период</button><button class="text-link" id="replanBtn">Перестроить план →</button></div>
+        <div><small class="eyebrow">VIA CLASSICA · НОВАЯ ЭРА</small><h3 id="plannerStatus">Планировщик бережно распределяет только самостоятельную нагрузку</h3><p>Школа, домашнее задание, дорога и отдых не превращаются в задачи приложения. Фиксированные занятия учитываются автоматически, а свободное время не заполняется целиком.</p></div>
+        <div class="planner-actions"><select id="dayMode" aria-label="Режим дня"><option value="normal">Обычный день</option><option value="light">Лёгкий день</option><option value="heavy">Насыщенный день</option><option value="rest">Отдых</option></select><button class="ghost-dark" id="freezeDay">💤 Отдых сегодня</button><button class="text-link" id="replanBtn">Пересчитать →</button></div>
       </div>
-      <div class="schedule-import panel">
-        <div><small class="eyebrow">ОБНОВЛЕНИЕ РАСПИСАНИЯ</small><h3>Новый план — без обновления сайта</h3><p>Загрузи сюда файл расписания от меня или укажи ссылку на JSON. Сайт заменит только автоматически созданные задачи и пересчитает ближайшие дни. Твои ручные задачи, отметки и ссылки сохраняются.</p></div>
-        <div class="schedule-actions">
-          <input id="scheduleFile" type="file" accept=".json,application/json" hidden>
-          <button class="ghost-dark" id="loadBundledSchedule">↻ Восстановить текущий план</button>
-          <button class="ghost-dark" id="importScheduleFile">📄 Загрузить файл</button>
-          <button class="ghost-dark" id="importScheduleUrl">↗ Загрузить по ссылке</button>
-          <button class="text-link" id="exportSchedule">Скачать текущий план →</button>
-        </div>
-        <div id="scheduleStatus" class="schedule-status" aria-live="polite"></div>
-      </div><div id="alerts" class="alerts"></div>
+      <div class="planner-chat panel" id="plannerChat">
+        <div class="planner-chat-head"><div><small class="eyebrow">ЧАТ С ПЛАНЕРОМ</small><h3>Меняй расписание обычным сообщением</h3><p>Регулярные и разовые занятия, переносы и состояние недели можно задавать здесь. Не нужно искать настройки вручную.</p></div><button class="text-link" id="plannerChatClear">Очистить чат</button></div>
+        <div id="plannerChatMessages" class="planner-chat-messages"></div>
+        <form id="plannerChatForm" class="planner-chat-form"><input id="plannerChatInput" autocomplete="off" placeholder="Например: Добавь регулярное занятие: Подготовка к ВСОШ, олимпиадная подготовка, вторник, 60 минут"><button class="primary" type="submit">Отправить</button></form>
+        <div class="planner-chat-hints"><button type="button" class="ghost-dark" id="openPlannerChat">Как изменить расписание</button><span>Формат: название · род деятельности · день · минуты</span></div>
+      </div>
+      <div class="recurring-panel panel"><div class="panel-title"><div><small>РЕГУЛЯРНОЕ РАСПИСАНИЕ</small><h3>Что уже зафиксировано</h3></div><span class="today-badge">+30 мин резерв после занятия</span></div><div id="recurringSchedule" class="recurring-schedule"></div></div>
+      <div class="backup-panel panel"><div><small class="eyebrow">РЕЗЕРВНАЯ КОПИЯ</small><h3>Сохранить данные Via Classica</h3><p>Полная копия локальных данных: задачи, отметки, ссылки, настройки планера, профиль английского, словарь и история тренировок. Перед восстановлением текущие данные сохраняются в отдельную резервную запись.</p></div><div class="backup-actions"><button class="ghost-dark" id="exportFullBackup" type="button">Скачать полную копию JSON</button><input id="importFullBackupFile" type="file" accept=".json,application/json" hidden><button class="ghost-dark" id="chooseFullBackup" type="button">Восстановить из копии</button><button class="ghost-dark" id="exportPlannerSchedule" type="button">Скачать расписание</button><input id="importPlannerScheduleFile" type="file" accept=".json,application/json" hidden><button class="ghost-dark" id="choosePlannerSchedule" type="button">Импортировать расписание</button></div><div id="plannerScheduleStatus" class="schedule-status" aria-live="polite"></div><div id="fullBackupStatus" class="schedule-status" aria-live="polite"></div></div>
+      <div id="alerts" class="alerts"></div>
 
       <div class="dashboard-grid">
         <section class="panel today-panel"><div class="panel-title"><div><small>СЕГОДНЯ</small><h3 id="todayDate">Сегодня</h3></div><span class="today-badge">фокус</span></div>
-          <div id="todaySummary" class="today-summary"></div><div id="todayTasks" class="task-list"></div>
-          <form id="taskForm" class="add-form"><input id="taskInput" type="text" placeholder="Новая задача на сегодня…" autocomplete="off"><select id="taskType" aria-label="Тип задачи"><option value="move">Переносимая</option><option value="soft">Фоновая</option><option value="hard">Жёсткая</option></select><input id="taskMinutes" type="number" min="15" step="15" value="45" aria-label="Минут"><button>Добавить</button></form>
+          <div id="todaySummary" class="today-summary"></div><div id="todayFixed" class="today-fixed"></div><div id="todayTasks" class="task-list"></div>
+          <form id="taskForm" class="add-form"><input id="taskInput" type="text" placeholder="Новая самостоятельная задача…" autocomplete="off"><select id="taskType" aria-label="Тип задачи"><option value="move">Переносимая</option><option value="soft">Лёгкая</option><option value="hard">Жёсткая</option></select><input id="taskMinutes" type="number" min="5" step="5" value="45" aria-label="Минут"><button>Добавить</button></form>
         </section>
         <section class="panel month-panel"><div class="panel-title"><div><small>ЭТОТ МЕСЯЦ</small><h3 id="monthTitle"></h3></div><span id="monthNumber"></span></div>
           <div id="monthEvents" class="month-list"></div>
@@ -90,7 +88,7 @@
     </section>
 
     <section id="english" class="page"><div class="section-hero"><div><small>02 · АНГЛИЙСКИЙ</small><h2>Рабочий английский для жизни и университета</h2><p>Не отдельный режим IELTS или ЕГЭ. Сейчас — международный английский; экзаменационные форматы подключаются постепенно ближе к нужному сроку.</p></div><div class="circle-word">EN<br><span>∞</span></div></div>
-      <div class="english-grid"><article class="english-card"><span>01</span><h3>Адаптивная тренировка</h3><p>10 коротких заданий. Сейчас — адаптивный локальный прототип; история используется для подбора следующего материала.</p><button class="primary" data-english-action="train">Начать 10 заданий</button></article><article class="english-card"><span>02</span><h3>🎯 Тренировка по теме</h3><p>Целевая практика по отдельной теме. Результаты не меняют долгосрочный профиль.</p><button class="ghost" data-english-action="topic">Открыть</button></article><article class="english-card"><span>03</span><h3>Мой профиль</h3><p>CEFR и качественная картина без баллов, рейтингов и геймификации.</p><button class="ghost" data-english-action="profile">Посмотреть</button></article><article class="english-card"><span>04</span><h3>Словарь</h3><p>Личные слова и выражения с переводом, определением и сохранённым контекстом.</p><button class="ghost" data-english-action="dict">Открыть</button></article><article class="english-card"><span>05</span><h3>Банк источников</h3><p>Каталог реальных источников FIPI, IELTS, Cambridge и других. Встроенными считаются только задания с реально проверенным содержимым; внешние записи ведут на оригинал.</p><button class="ghost" data-english-action="sources">Открыть каталог</button></article></div>
+      <div class="english-grid"><article class="english-card"><span>01</span><h3>Адаптивная тренировка</h3><p>10 коротких заданий. Сейчас — адаптивный локальный прототип; история используется для подбора следующего материала.</p><button class="primary" data-english-action="train">Начать 10 заданий</button></article><article class="english-card"><span>02</span><h3>🎯 Тренировка по теме</h3><p>Целевая практика по отдельной теме. Результаты не меняют долгосрочный профиль.</p><button class="ghost" data-english-action="topic">Открыть</button></article><article class="english-card"><span>03</span><h3>Мой профиль</h3><p>CEFR и качественная картина без баллов, рейтингов и геймификации.</p><button class="ghost" data-english-action="profile">Посмотреть</button></article><article class="english-card"><span>04</span><h3>Словарь</h3><p>Личные слова и выражения с переводом, определением и сохранённым контекстом.</p><button class="ghost" data-english-action="dict">Открыть</button></article></div>
       <div class="english-session panel"><div id="englishTask"></div></div>
       <div class="resource-box"><b>Принцип:</b> языковая корректность проверяется по авторитетной английской норме; экзаменационные требования подключаются отдельно.</div>
     </section>
@@ -125,6 +123,6 @@
 
 <div class="modal" id="linkModal" aria-hidden="true"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><small>НОВАЯ ССЫЛКА</small><h2>Добавить в архив</h2><form id="linkForm"><label>Название<input id="linkName" required placeholder="Например, Sapienza — Classics"></label><label>Ссылка<input id="linkUrl" type="url" required placeholder="https://…"></label><label>Категория<select id="linkCategory"><option>Вузы</option><option>Олимпиады</option><option>IELTS</option><option>Подготовка</option><option>Документы</option><option>Италия</option><option>Мои ссылки</option></select></label><label class="checkline"><input id="linkFav" type="checkbox"> Добавить в избранное</label><div class="modal-actions"><button type="button" class="ghost" id="cancelLink">Отмена</button><button class="primary" type="submit">Сохранить</button></div></form></div></div>
 
-<script src="app.js?v=13.25"></script><script src="planner.js?v=13.25"></script><script src="english.js?v=13.25"></script>
+<script src="app.js?v=14.1"></script><script src="planner.js?v=14.1"></script><script src="english.js?v=14.1"></script>
 </body>
 </html>

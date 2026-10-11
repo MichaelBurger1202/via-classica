@@ -1,0 +1,64 @@
+VIA CLASSICA v14.1 — REPETITIO / TEST REPORT
+Date: 2026-10-11
+Candidate status: not published
+
+METHOD
+Chromium CDP remote debugging, Chromium 144.0.7559.96; no Playwright.
+Normal navigation to localhost was blocked by the environment policy. Used the HANDOFF-approved Page.setDocumentContent fallback with inline app CSS/JS and mock localStorage/sessionStorage. Tests exercised the actual runtime sources and DOM in Chromium; mock storage means these results do not prove persistence on a real HTTPS origin.
+
+RESULT
+24/24 E2E checks passed; 0 failed; runtime exceptions: 0.
+
+E2E SCENARIOS
+- [PASS] inline app boot and storage shim: {"href":"about:blank","origin":"null","title":"Via Classica — 2026–2029","localStorage":6,"chat":true,"english":true}
+- [PASS] v13.25/v13.29 migration preserves all user data: {"check":true,"link":"keep-link","tasks":[{"id":"legacy-task","plan":false,"legacyPlan":true},{"id":"legacy-fixed","plan":false}],"legacyPlannerKey":true,"mode":"light","vacation":"heavy","frozen":true,"recurring":["legacy-recurring","fixed-mon-litclub","fixed-wed-ielts","fixed-thu-literature","fixed-sun-ielts"],"context":"Legacy context","chat":1,"english":"B1","dictionary":true,"migration":true}
+- [PASS] fixed commitments displayed separately and Sunday duration editable: {"fixed":["IELTS + Speaking"],"taskText":"○\nLegacy task survives\n25 мин\n⋯","actualButton":true}
+- [PASS] actual fixed duration persists and updates capacity: {"id":"fixed-sun-ielts","actual":80,"summary":"0 / 0 мин\n0 мин свободно · фиксировано 80 мин · резерв после занятий 30 мин"}
+- [PASS] planner chat adds recurring task: {"found":true,"chat":3}
+- [PASS] duplicate exact recurring title asks instead of deleting wrong lesson: {"before":2,"after":2,"reply":"Нашёл несколько совпадений: IELTS + Speaking — Среда; IELTS + Speaking — Воскресенье. Уточни день недели, чтобы я не удалил не то занятие."}
+- [PASS] recurring change and remove unique item: {"changed":true,"removed":true}
+- [PASS] one-off task, tired context, homework context: {"oneoff":true,"mode":"light","todayNote":"Сегодня очень устал, ничего тяжёлого не ставь","weekNote":"На этой неделе много школьного ДЗ"}
+- [PASS] task form creates and completes a task without overwriting other records: {"created":true,"done":true,"oldTasksPreserved":true}
+- [PASS] day mode and freeze toggles: {"mode":"rest","frozen":true}
+- [PASS] all nav routes and catalog UI absent: {"out":[["home",true],["olympiads",true],["ielts",true],["fullplan",true],["grade11",true],["links",true],["english",true]],"catalog":false}
+- [PASS] visible drawer navigation button changes page: {"active":true,"drawerOpen":false}
+- [PASS] links add/favourite CRUD: {"found":true,"fav":true,"url":"https://example.com/cdp","edited":true,"deleted":true}
+- [PASS] daily AI starts exactly 10 tasks and retry preserves same question: {"overlay":true,"progress":"Задание 2 из 10","total":10,"wrongAnswerOfferedRetry":true,"sameQuestionAfterRetry":true,"completedFirst":1,"correctFeedback":"✓ Верно"}
+- [PASS] clicking a task word saves it once and locks repeat clicks for the day: {"word":"look","locked":true,"before":0,"after1":1,"after2":1,"noDuplicate":true}
+- [PASS] manual topic tree has 34 readable topics and search filters: {"visible":true,"total":34,"summary":"34 тем · 170 заданий","visibleAfterSearch":2,"groupsAfterSearch":1,"rawCodes":false}
+- [PASS] manual grammar practice retry repeats same item: {"title":"Present Simple и Present Continuous","sameQuestion":true,"summary":"ТРЕНИРОВКА ЗАВЕРШЕНА\nPresent Simple и Present Continuous\n\n0 из 0 отвечено правильно. Осталось заданий: 4.\n\nПройти ещё 5\nК темам"}
+- [PASS] dictionary manual add persists: {"found":true,"list":"look\nновое\nПеревод уточняется в контексте\nDefinition will be refined from context\n\nLook! The children ___ in the garden.\n\nУдалить","deleted":true}
+- [PASS] full backup export UI responds: {"status":"Полная резервная копия подготовлена.","hasRestore":true}
+- [PASS] planner schedule export/import merges without deleting existing tasks: {"fileCount":0,"taskIds":["legacy-task","legacy-fixed","u179171069630040f85fe48f9008","u17917106963294ad2798fa7301","schedule-task"],"hasLegacy":true,"recurring":["legacy-recurring","fixed-mon-litclub","fixed-wed-ielts","fixed-thu-literature","fixed-sun-ielts","schedule-recurring"],"mode":"light","status":"Расписание импортировано и объединено с текущими задачами.","backup":true}
+- [PASS] storage write failure preserves a recoverable backup: {"backupCreated":true,"hasValue":true,"backupChat":true,"oldPlannerStillReadable":true}
+- [PASS] full backup restore validates and restores keys transactionally: {"restored":true,"link":"restored-link","english":"B2","preimport":true,"reloadSuppressed":true,"status":"Копия восстановлена. Страница перезагрузится, чтобы применить все данные."}
+- [PASS] mobile 390x844 and desktop 1440x900 no horizontal overflow: {"mobile":{"w":390,"s":390,"overflow":false},"desktop":{"w":1440,"s":1425,"overflow":false}}
+- [PASS] runtime/console exceptions: []
+
+STATIC / INTEGRITY CHECKS
+- node --check: app.js, planner.js, planner-inline.js, english.js, sw.js.
+- JSON parse checks: source bank, current/example schedule, FIPI ingestion/navigation, manifest and report JSON before packaging.
+- Runtime bank IDs/count compared with english-source-bank-v1.json.
+- Index local asset references and service-worker asset paths checked against root files.
+- Cache and URL version strings set to v14.1; manifest version is 14.1.
+- Source bank: 1342 records; 1342 unique IDs; types source-mcq 1168, source-input 115, source-link 59.
+- Content statuses: metadata-only 1281, external-verified 59, embedded-verified-mirror 2. Only two source-bank records have embedded verified content; this is not a 1342-question playable bank.
+- Grammar practice map: 34 topics / 170 authored built-in practice items.
+
+FIXES VERIFIED
+- Legacy v13.25/v13.29 state migrates without deleting old plan tasks; legacy V2 key is retained.
+- Modes/frozen/actuals/recurring/context/chat are merged into V3; legacy mode names are normalized.
+- Standard fixed commitments merge without same-title/day duplicates.
+- Ambiguous duplicate lesson removal requests clarification.
+- Planner schedule import merges tasks/settings and does not delete existing tasks.
+- Full backup restore uses pre-import snapshot; storage write failures create *_storage_error_backup where possible.
+- Daily AI opens at 1/10, retry preserves the same question, manual grammar retry preserves the same item, word-click dictionary add is one-per-day.
+
+LIMITATIONS — NOT CLAIMED AS PASS
+- Service worker install/update/offline behaviour on the real GitHub Pages HTTPS origin was not verified because direct navigation was blocked by the test environment. Cache/assets/version were checked statically only.
+- External official-source navigation, external PDF/audio loading, and real-network image loading were not verified in this sandbox.
+- Actual browser persistent localStorage across a real page reload was not available in the approved fallback; migration and write paths were tested against mock storage.
+- Production commit/live tree was not modified or published by this audit.
+
+RELEASE GATE
+Candidate ZIP is root-correct and prepared for manual deployment after the user first downloads a pre-update backup. After publishing, verify the HTTPS PWA/service-worker path and smoke-test the real site before deleting the backup.

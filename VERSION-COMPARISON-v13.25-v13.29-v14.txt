@@ -1,0 +1,117 @@
+v13.25: 62 top-level files; root=/mnt/data/vc_audit/v13_25/site
+  index.html: 23404 bytes
+  app.js: 10636 bytes
+  planner.js: 39655 bytes
+  planner-inline.js: MISSING
+  english.js: 979464 bytes
+  styles.css: 31459 bytes
+  sw.js: 1417 bytes
+  manifest.webmanifest: 696 bytes
+  via-classica-schedule-current.json: 5430 bytes
+  english-source-bank-v1.json: 1039123 bytes
+  script tags: app.js?v=13.25, planner.js?v=13.25, english.js?v=13.25
+  planner-inline referenced: False
+  planner keys: viaClassicaPlannerV2
+  bank: declared=1332 items=1332 uniqueIDs=1332 embedded=2 statuses={"embedded-verified-mirror": 2, "external-verified": 49, "metadata-only": 1281}
+v13.29: 71 top-level files; root=/mnt/data/vc_audit/v13_29
+  index.html: 23042 bytes
+  app.js: 10636 bytes
+  planner.js: 42289 bytes
+  planner-inline.js: 47434 bytes
+  english.js: 974409 bytes
+  styles.css: 31459 bytes
+  sw.js: 1417 bytes
+  manifest.webmanifest: 696 bytes
+  via-classica-schedule-current.json: 5645 bytes
+  english-source-bank-v1.json: 1039123 bytes
+  script tags: app.js?v=13.29, planner.js?v=13.29, english.js?v=13.29
+  planner-inline referenced: False
+  planner keys: viaClassicaPlannerV2
+  bank: declared=1332 items=1332 uniqueIDs=1332 embedded=2 statuses={"embedded-verified-mirror": 2, "external-verified": 49, "metadata-only": 1281}
+v14: 73 top-level files; root=/mnt/data/vc_audit/v14/vc14
+  index.html: 23281 bytes
+  app.js: 10633 bytes
+  planner.js: 20455 bytes
+  planner-inline.js: 47434 bytes
+  english.js: 974406 bytes
+  styles.css: 34197 bytes
+  sw.js: 1393 bytes
+  manifest.webmanifest: 693 bytes
+  via-classica-schedule-current.json: 2298 bytes
+  english-source-bank-v1.json: 1039123 bytes
+  script tags: app.js?v=14, planner.js?v=14, english.js?v=14
+  planner-inline referenced: False
+  planner keys: viaClassicaPlannerV3, viaClassicaV2
+  bank: declared=1332 items=1332 uniqueIDs=1332 embedded=2 statuses={"embedded-verified-mirror": 2, "external-verified": 49, "metadata-only": 1281}
+v14.1: 83 top-level files; root=/mnt/data/vc_release
+  index.html: 24671 bytes
+  app.js: 10953 bytes
+  planner.js: 35729 bytes
+  planner-inline.js: 47434 bytes
+  english.js: 985912 bytes
+  styles.css: 34671 bytes
+  sw.js: 1409 bytes
+  manifest.webmanifest: 695 bytes
+  via-classica-schedule-current.json: 2298 bytes
+  english-source-bank-v1.json: 1051885 bytes
+  script tags: app.js?v=14.1, planner.js?v=14.1, english.js?v=14.1
+  planner-inline referenced: False
+  planner keys: viaClassicaPlannerV2, viaClassicaPlannerV3, viaClassicaV2
+  bank: declared=1342 items=1342 uniqueIDs=1342 embedded=2 statuses={"embedded-verified-mirror": 2, "external-verified": 59, "metadata-only": 1281}
+
+RUNTIME DIFF (SequenceMatcher changed lines approx):
+
+index.html
+  v13.25 -> v13.29: ~5 added/changed lines, ~5 removed/changed lines
+  v13.29 -> v14: ~15 added/changed lines, ~18 removed/changed lines
+  v14 -> v14.1: ~4 added/changed lines, ~3 removed/changed lines
+
+styles.css
+  v13.25 -> v13.29: ~3 added/changed lines, ~3 removed/changed lines
+  v13.29 -> v14: ~3 added/changed lines, ~0 removed/changed lines
+  v14 -> v14.1: ~2 added/changed lines, ~0 removed/changed lines
+
+app.js
+  v13.25 -> v13.29: ~1 added/changed lines, ~1 removed/changed lines
+  v13.29 -> v14: ~1 added/changed lines, ~1 removed/changed lines
+  v14 -> v14.1: ~6 added/changed lines, ~3 removed/changed lines
+
+planner.js
+  v13.25 -> v13.29: ~27 added/changed lines, ~16 removed/changed lines
+  v13.29 -> v14: ~83 added/changed lines, ~205 removed/changed lines
+  v14 -> v14.1: ~75 added/changed lines, ~13 removed/changed lines
+
+planner-inline.js
+  v13.25 -> v13.29: added
+  v13.29 -> v14: ~0 added/changed lines, ~0 removed/changed lines
+  v14 -> v14.1: ~0 added/changed lines, ~0 removed/changed lines
+
+english.js
+  v13.25 -> v13.29: ~5 added/changed lines, ~54 removed/changed lines
+  v13.29 -> v14: ~1 added/changed lines, ~1 removed/changed lines
+  v14 -> v14.1: ~5 added/changed lines, ~4 removed/changed lines
+
+sw.js
+  v13.25 -> v13.29: ~8 added/changed lines, ~8 removed/changed lines
+  v13.29 -> v14: ~8 added/changed lines, ~8 removed/changed lines
+  v14 -> v14.1: ~8 added/changed lines, ~8 removed/changed lines
+
+manifest.webmanifest
+  v13.25 -> v13.29: ~1 added/changed lines, ~1 removed/changed lines
+  v13.29 -> v14: ~1 added/changed lines, ~1 removed/changed lines
+  v14 -> v14.1: ~1 added/changed lines, ~1 removed/changed lines
+
+via-classica-schedule-current.json
+  v13.25 -> v13.29: ~8 added/changed lines, ~0 removed/changed lines
+  v13.29 -> v14: ~33 added/changed lines, ~142 removed/changed lines
+  v14 -> v14.1: ~0 added/changed lines, ~0 removed/changed lines
+
+english-source-bank-v1.json
+  v13.25 -> v13.29: ~0 added/changed lines, ~0 removed/changed lines
+  v13.29 -> v14: ~0 added/changed lines, ~0 removed/changed lines
+  v14 -> v14.1: ~209 added/changed lines, ~3 removed/changed lines
+
+RELEASE STATIC CHECKS: PASS
+  index local asset refs checked: 7
+  all JavaScript files node --check: 5
+  JSON files parsed: 7

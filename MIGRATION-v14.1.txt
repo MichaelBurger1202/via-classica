@@ -1,0 +1,19 @@
+MIGRATION / STORAGE NOTES — v14.1
+
+Known storage keys:
+- viaClassicaV2: shared app state (checks, tasks, links).
+- viaClassicaPlannerV2: legacy planner state; left intact.
+- viaClassicaPlannerV3: active v14.1 planner state.
+- viaClassicaEnglishV1: English profile, dictionary, history and session.
+- viaClassicaReturnTask: temporary sessionStorage marker for returning from external source tasks.
+
+Migration behaviour:
+1. If viaClassicaPlannerV3 has not been migrated, planner settings are merged from viaClassicaPlannerV2. Existing V3 values win on collisions; missing legacy fields are preserved.
+2. Old recurring records are merged by ID or same title + weekday. The four standard fixed commitments are added only if a matching title/day is absent.
+3. Old task records with plan=true are not deleted. They become dated editable records with legacyPlan=true and plan=false.
+4. The original viaClassicaPlannerV2 key is retained, and a raw pre-migration copy is created when possible.
+5. Corrupt JSON is copied to *_corrupt_backup where possible. Storage write failures attempt *_storage_error_backup.
+6. Full backup restore stores a pre-import snapshot before replacing Via Classica keys; schedule import is a merge and preserves existing tasks.
+7. The app uses localStorage/sessionStorage and service-worker Cache Storage; no IndexedDB use was found in the active runtime.
+
+Do not clear browser storage during troubleshooting. Do not remove old keys manually until the user has verified the updated site and kept a backup.

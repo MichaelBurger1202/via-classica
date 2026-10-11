@@ -1,8 +1,9 @@
+(function(){
 const STORAGE='viaClassicaV2';
 const readStorage=(key,fallback=null)=>{try{return localStorage.getItem(key)??fallback}catch(_){return fallback}};
 let state;
 try { state=JSON.parse(readStorage(STORAGE,'{}')||'{}')||{}; } catch(e) { const raw=readStorage(STORAGE,null); try { if(raw) localStorage.setItem(STORAGE+'_corrupt_backup',raw); } catch(_) {} state={}; }
-if(!state || typeof state!=='object' || Array.isArray(state)) state={};
+if(!state || typeof state!=='object' || Array.isArray(state)){const raw=readStorage(STORAGE,null);try{if(raw&&!localStorage.getItem(STORAGE+'_corrupt_backup'))localStorage.setItem(STORAGE+'_corrupt_backup',raw)}catch(_){}state={};}
 state.checks=(state.checks && typeof state.checks==='object' && !Array.isArray(state.checks))?state.checks:{};
 state.tasks=Array.isArray(state.tasks)?state.tasks.filter(t=>t&&typeof t==='object').map(t=>{const o=Object.assign({},t);o.id=String(t.id||('legacy-'+Math.random().toString(36).slice(2)));o.text=String(t.text||'').trim();o.date=String(t.date||'');o.type=['move','soft','hard'].includes(t.type)?t.type:'move';const n=Number(t.minutes);o.minutes=Number.isFinite(n)?Math.max(5,Math.min(600,n)):45;o.done=!!t.done;return o}).filter(t=>t.text):[];
 state.links=Array.isArray(state.links)?state.links.filter(l=>l&&typeof l==='object').map(l=>({id:String(l.id||('link-'+Math.random().toString(36).slice(2))),name:String(l.name||'').trim(),url:String(l.url||''),cat:String(l.cat||'Вузы'),fav:!!l.fav})).filter(l=>l.name||l.url):[];
@@ -10,12 +11,12 @@ state.links=Array.isArray(state.links)?state.links.filter(l=>l&&typeof l==='obje
 {const seen=new Set();state.tasks.forEach(t=>{if(seen.has(t.id))t.id=t.id+'-'+Math.random().toString(36).slice(2,7);seen.add(t.id)});const seenLinks=new Set();state.links.forEach(l=>{if(seenLinks.has(l.id))l.id=l.id+'-'+Math.random().toString(36).slice(2,7);seenLinks.add(l.id)})}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок',english:'Английский'};
-function save(){let cur={};try{cur=JSON.parse(readStorage(STORAGE,'{}')||'{}')||{};}catch(e){cur={};}if(!cur||typeof cur!=='object'||Array.isArray(cur))cur={};cur.checks=state.checks;cur.links=state.links;/* planner.js owns tasks; never overwrite its newer task state with this page's boot-time snapshot */try{localStorage.setItem(STORAGE,JSON.stringify(cur));}catch(e){}updateProgress()}
+function save(){let cur={};try{cur=JSON.parse(readStorage(STORAGE,'{}')||'{}')||{};}catch(e){cur={};}if(!cur||typeof cur!=='object'||Array.isArray(cur))cur={};cur.checks=state.checks;cur.links=state.links;/* planner.js owns tasks; never overwrite its newer task state with this page's boot-time snapshot */try{localStorage.setItem(STORAGE,JSON.stringify(cur));}catch(e){try{localStorage.setItem(STORAGE+'_storage_error_backup',JSON.stringify({at:new Date().toISOString(),state:cur}))}catch(_){}}updateProgress()}
 function bindChecks(){
   $$('input[data-id]').forEach(x=>{x.checked=!!state.checks[x.dataset.id];x.addEventListener('change',()=>{state.checks[x.dataset.id]=x.checked;save()})})
 }
 function updateProgress(){const all=$$('input[data-id]');const done=all.filter(x=>x.checked).length;const p=all.length?Math.round(done/all.length*100):0;const pct=$('#pct'),bar=$('#bar');if(pct)pct.textContent=p+'%';if(bar)bar.style.width=p+'%'}
-function show(page){const wasActive=$('#'+page)?.classList.contains('active');$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();if(!wasActive)window.scrollTo({top:0,behavior:'smooth'}); if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
+function show(page){const wasActive=$('#'+page)?.classList.contains('active');$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();if(!wasActive){try{window.scrollTo({top:0,behavior:'smooth'})}catch(_){}} if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
 window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 $$('[data-add-task]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show('home');const form=$('#taskForm'),input=$('#taskInput');if(form){form.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input?.focus(),250)}}));
@@ -71,6 +72,8 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=13.25').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=14').catch(() => {});
   });
 }
+
+})();

@@ -1,0 +1,209 @@
+(function(){
+const PKEY='viaClassicaPlannerV2';
+const SCHEDULE_FORMAT='via-classica-schedule-v1';
+const readPlannerStorage=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
+let planner={};
+try { planner=JSON.parse(readPlannerStorage(PKEY)||'{}')||{}; } catch(e) {
+  const raw=readPlannerStorage(PKEY); try { if(raw) localStorage.setItem(PKEY+'_corrupt_backup',raw); } catch(_) {}
+  planner={};
+}
+if(!planner || typeof planner!=='object' || Array.isArray(planner)) planner={};
+planner.modes=(planner.modes&&typeof planner.modes==='object'&&!Array.isArray(planner.modes))?planner.modes:{}; planner.frozen=(planner.frozen&&typeof planner.frozen==='object'&&!Array.isArray(planner.frozen))?planner.frozen:{}; planner.seeded=!!planner.seeded;
+const savePlanner=()=>{try{localStorage.setItem(PKEY,JSON.stringify(planner));return true}catch(e){console.warn('Via Classica planner settings storage error',e);try{localStorage.setItem(PKEY+'_storage_error_backup',JSON.stringify({at:Date.now(),planner}));}catch(_){}return false}};
+const iso=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}, today=()=>iso(new Date());
+const dt=s=>new Date(s+'T12:00:00'), add=(s,n)=>{let d=dt(s);d.setDate(d.getDate()+n);return iso(d)};
+const caps={normal:150,light:90,heavy:210,vacation:240,festival:30};
+const priorityScore=t=>{if(t.userAdded)return 100;if(t.type==='hard')return 95;if(t.type==='soft')return 20;return t.priority==='high'?80:50};
+const isFixed=t=>t.type==='fixed'||t.fixed===true;
+const fixedSpend=(s,d)=>s.tasks.filter(t=>t.date===d&&!isDone(t)&&isFixed(t)).reduce((a,t)=>a+(Number(t.actualMinutes)||Number(t.minutes)||45),0);
+const selfCapacity=(s,d)=>Math.max(0,capacity(d)-fixedSpend(s,d));
+const modeName={normal:'Обычный день',light:'Лёгкий день',heavy:'Тяжёлый день',vacation:'Каникулы',festival:'Фестиваль / поездка'};
+const stateRef=window.__viaState || null;
+// Existing app keeps its state in a lexical variable, so we use localStorage directly.
+const getState=()=>{
+  let s={};
+  try { s=JSON.parse(readPlannerStorage('viaClassicaV2')||'{}')||{}; } catch(e) {
+    try { const raw=readPlannerStorage('viaClassicaV2'); if(raw) localStorage.setItem('viaClassicaV2_corrupt_backup',raw); } catch(_) {}
+    s={};
+  }
+  s.tasks=Array.isArray(s.tasks)?s.tasks.filter(t=>t&&typeof t==='object').map(t=>{const out=Object.assign({},t);out.text=String(t.text||'').trim();out.date=String(t.date||'');out.type=['move','soft','hard','fixed'].includes(t.type)?t.type:'move';
+  out.fixed=!!t.fixed||out.type==='fixed';
+  out.userAdded=!!t.userAdded;
+  if(t.actualMinutes!=null){const a=Number(t.actualMinutes);out.actualMinutes=Number.isFinite(a)?Math.max(5,Math.min(600,a)):undefined;}
+  out.priority=t.priority||'';const n=Number(t.minutes);out.minutes=Number.isFinite(n)?Math.max(5,Math.min(600,n)):45;out.done=!!t.done;out.plan=!!t.plan;return out}):[];
+  return s
+};
+const saveState=s=>{try{localStorage.setItem('viaClassicaV2',JSON.stringify(s));return true}catch(e){console.warn('Via Classica planner storage error',e);try{localStorage.setItem('viaClassicaV2_storage_error_backup',JSON.stringify({at:Date.now(),state:s}));}catch(_){}return false}};
+const getTasks=()=>getState().tasks;
+const capacity=d=>caps[planner.modes[d]||'normal']||caps.normal;
+const validDate=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return false;const d=dt(String(s));return !Number.isNaN(d.getTime())&&iso(d)===String(s)};
+const isDone=t=>t.done===true||t.status==='done';
+function setScheduleStatus(msg,ok=true){const el=document.getElementById('scheduleStatus');if(el){el.textContent=msg;el.className='schedule-status '+(ok?'ok':'bad')}}
+function normalizeSchedule(raw){
+ if(!raw || typeof raw!=='object') throw new Error('Файл не является объектом JSON.');
+ if(raw.format && raw.format!==SCHEDULE_FORMAT) throw new Error('Неизвестный формат расписания. Нужен via-classica-schedule-v1.');
+ let sourceTasks=Array.isArray(raw.tasks)?raw.tasks:[];
+ // Accept the weekly-plan file used by Via Classica as well as the dated task export.
+ if(!sourceTasks.length && raw.schema===SCHEDULE_FORMAT && raw.period && Array.isArray(raw.fixed_commitments) && Array.isArray(raw.self_study)){
+  const start=String(raw.period.start||''), end=String(raw.period.end||'');
+  if(!validDate(start)||!validDate(end)||end<start) throw new Error('В расписании указан неверный период.');
+  const weekdays={'Воскресенье':0,'Понедельник':1,'Вторник':2,'Среда':3,'Четверг':4,'Пятница':5,'Суббота':6};
+  const weekly=[...raw.fixed_commitments,...raw.self_study].filter(x=>x&&weekdays[x.day]!==undefined&&x.title);
+  const rotation=raw.rotation&&Array.isArray(raw.rotation.items)?raw.rotation.items:[];
+  let cur=dt(start), last=dt(end), idx=0, generated=[];
+  while(cur<=last){
+   const date=iso(cur), wd=cur.getDay(), dayName=Object.keys(weekdays).find(k=>weekdays[k]===wd);
+   weekly.filter(x=>x.day===dayName).forEach((x,i)=>generated.push({id:'weekly-'+date+'-'+i,date,text:String(x.title),type:x.type==='fixed'||x.hard?'fixed':'move',fixed:x.type==='fixed'||x.hard===true,minutes:Number.isFinite(Number(x.minutes))?Math.max(5,Math.min(600,Number(x.minutes))):45,done:false,plan:true,countsTowardCapacity:x.type!=='fixed'&&x.hard!==true,goal:x.priority?String(x.priority):'',steps:'',result:'',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'}));
+   if(wd===6 && rotation.length){
+    const title=rotation[idx%rotation.length];
+    generated.push({id:'rotation-'+date,date,text:String(title),type:'move',minutes:105,done:false,plan:true,goal:'Субботняя ротация олимпиадной подготовки.',steps:'Выполнить один полный вариант или соответствующий олимпиадный блок; затем кратко разобрать ошибки.',result:'Решение + журнал ошибок.',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'});
+    idx++;
+   }
+   cur.setDate(cur.getDate()+1);
+  }
+  sourceTasks=generated;
+ }
+ if(!sourceTasks.length) throw new Error('В расписании нет задач.');
+ const rawIds=sourceTasks.map(t=>String(t&&t.id||'')).filter(Boolean); if(new Set(rawIds).size!==rawIds.length) throw new Error('В расписании есть повторяющиеся ID задач.');
+ const clean=sourceTasks.map((t,i)=>{
+  if(!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.date))) throw new Error('Задача №'+(i+1)+': неверная дата.');
+  if(!t.text) throw new Error('Задача №'+(i+1)+': нет названия.');
+  const date=String(t.date), parsed=dt(date);
+  if(Number.isNaN(parsed.getTime()) || iso(parsed)!==date) throw new Error('Задача №'+(i+1)+': несуществующая дата.');
+  const type=['move','soft','hard','fixed'].includes(t.type)?t.type:'move';
+  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date,text:String(t.text),type,fixed:type==='fixed',userAdded:!!t.userAdded,priority:t.priority||'',actualMinutes:t.actualMinutes,minutes:(()=>{const n=Number(t.minutes);return Number.isFinite(n)?Math.max(5,Math.min(600,n)):45})(),done:false,plan:true,countsTowardCapacity:t.countsTowardCapacity!==false,fixed:isFixed(t),actualMinutes:t.actualMinutes,priority:t.priority||'',userAdded:!!t.userAdded,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
+ });
+ return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta&&typeof raw.meta==='object'&&!Array.isArray(raw.meta)?raw.meta:{period:raw.period||null},events:Array.isArray(raw.events)?raw.events.filter(e=>e&&typeof e==='object').map(e=>({date:String(e.date||''),time:String(e.time||''),title:String(e.title||e.text||'Событие')})).filter(e=>validDate(e.date)):[]};
+}
+function applySchedule(raw){
+ const plan=normalizeSchedule(raw), s=getState(), old=s.tasks.filter(t=>t.plan);
+ const doneById=new Map(old.map(t=>[String(t.id),!!t.done]));
+ // Preserve completion only for tasks with the same stable id; replace the generated plan wholesale.
+ plan.tasks.forEach(t=>{if(doneById.get(String(t.id)))t.done=true});
+ s.tasks=s.tasks.filter(t=>!t.plan).concat(plan.tasks);
+ saveState(s);
+ planner.planVersion=10; planner.seeded=true; planner.scheduleTitle=plan.title; planner.scheduleUpdatedAt=new Date().toISOString();
+ planner.scheduleMeta=plan.meta; planner.scheduleEvents=plan.events;
+ savePlanner();
+ const moved=replan();
+ render();
+ setScheduleStatus('Загружено: '+plan.title+' · '+plan.tasks.length+' задач · пересчитано переносов: '+moved,true);
+}
+async function loadScheduleText(text){
+ let raw; try{raw=JSON.parse(text)}catch(e){throw new Error('Не удалось прочитать JSON. Проверь файл или ссылку.')} applySchedule(raw);
+}
+function schedulePayload(){
+ const s=getState();
+ return {format:SCHEDULE_FORMAT,title:planner.scheduleTitle||'Via Classica — текущий план',generatedAt:new Date().toISOString(),meta:planner.scheduleMeta||{},events:planner.scheduleEvents||[],tasks:s.tasks.filter(t=>t.plan).map(t=>({id:t.id,date:t.date,text:t.text,type:t.type,minutes:t.minutes,countsTowardCapacity:t.countsTowardCapacity!==false,fixed:isFixed(t),actualMinutes:t.actualMinutes,priority:t.priority||'',userAdded:!!t.userAdded,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||''}))};
+}
+function exportSchedule(){
+ const blob=new Blob([JSON.stringify(schedulePayload(),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='via-classica-schedule.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); setScheduleStatus('Текущий план сохранён в файл via-classica-schedule.json.',true);
+}
+async function importScheduleUrl(){
+ const url=prompt('Вставь прямую ссылку на JSON-файл расписания. Для GitHub используй Raw-ссылку.'); if(!url)return;
+ try{setScheduleStatus('Загружаю расписание…',true);const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}catch(e){setScheduleStatus('Не удалось загрузить: '+e.message+' Если сайт запрещает запрос, скачай JSON и загрузи его файлом.',false)}
+}
+async function loadBundledSchedule(){
+ try{setScheduleStatus('Восстанавливаю встроенный текущий план…',true);await loadScheduleText('{\n  "schema": "via-classica-schedule-v1",\n  "title": "Via Classica — текущий учебный план",\n  "period": {\n    "start": "2026-09-15",\n    "end": "2027-02-28"\n  },\n  "weekly_target_self_study_minutes": 480,\n  "fixed_commitments": [\n    {\n      "day": "Понедельник",\n      "type": "fixed",\n      "title": "Литературный клуб",\n      "minutes": 60,\n      "hard": true,\n      "countsTowardCapacity": false\n    },\n    {\n      "day": "Четверг",\n      "type": "fixed",\n      "title": "Курс подготовки к ЕГЭ по литературе",\n      "minutes": 60,\n      "hard": true,\n      "countsTowardCapacity": false\n    },\n    {\n      "day": "Суббота",\n      "type": "fixed",\n      "title": "Умные чтения",\n      "minutes": 80,\n      "hard": true,\n      "countsTowardCapacity": false\n    },\n    {\n      "day": "Воскресенье",\n      "type": "fixed",\n      "title": "Английский — разговорный репетитор",\n      "minutes": 60,\n      "hard": true,\n      "countsTowardCapacity": false\n    },\n    {\n      "day": "Среда",\n      "type": "fixed",\n      "title": "Английский — разговорный speaking",\n      "minutes": 60,\n      "hard": true,\n      "countsTowardCapacity": false\n    }\n  ],\n  "self_study": [\n    {\n      "day": "Вторник",\n      "type": "self",\n      "title": "Олимпиадная филология",\n      "minutes": 90,\n      "priority": "SPбГУ + Высшая проба",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Среда",\n      "type": "self",\n      "title": "ВСОШ по русскому + филология / разбор ошибок",\n      "minutes": 60,\n      "priority": "ВСОШ русский",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Среда",\n      "type": "self",\n      "title": "Филология / разбор ошибок",\n      "minutes": 30,\n      "priority": "СПбГУ + Высшая проба",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Четверг",\n      "type": "self",\n      "title": "Закрепление после курса по литературе",\n      "minutes": 30,\n      "priority": "Литература",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Пятница",\n      "type": "self",\n      "title": "Олимпиадная литература",\n      "minutes": 60,\n      "priority": "ВСОШ литература",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Пятница",\n      "type": "self",\n      "title": "Филология",\n      "minutes": 30,\n      "priority": "СПбГУ + Высшая проба",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Суббота",\n      "type": "self",\n      "title": "Олимпиадный полный вариант",\n      "minutes": 105,\n      "priority": "Ротация",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Воскресенье",\n      "type": "self",\n      "title": "Разбор олимпиадных ошибок",\n      "minutes": 50,\n      "priority": "Все олимпиады",\n      "countsTowardCapacity": true\n    },\n    {\n      "day": "Воскресенье",\n      "type": "self",\n      "title": "Английский — лёгкая поддержка",\n      "minutes": 25,\n      "priority": "Общий английский / IELTS trial",\n      "countsTowardCapacity": true\n    }\n  ],\n  "rotation": {\n    "day": "Суббота",\n    "items": [\n      "СПбГУ — олимпиада по филологии",\n      "Высшая проба — филология",\n      "ВСОШ — литература",\n      "СПбГУ — олимпиада по филологии",\n      "Высшая проба — филология",\n      "Ломоносов — литература / Покори Воробьёвы горы!"\n    ],\n    "note": "ВСОШ по русскому добавляется отдельным вариантом периодически."\n  },\n  "rules": [\n    "Понедельник — без обязательной самостоятельной работы.",\n    "Пятница — самостоятельная работа допустима, несмотря на исходную рекомендацию «отдых», потому что здесь учтены фиксированные занятия недели.",\n    "Латинский и древнегреческий отдельно не планируются: это школьная нагрузка.",\n    "До 1 ноября 2026 года повысить приоритет ВСОШ по литературе и русскому из-за школьного этапа.",\n    "После школьного этапа перераспределять высвободившееся время на СПбГУ, Высшую пробу и муниципальный этап ВСОШ.",\n    "HSE «Высшая проба» не получает отдельный еженедельный блок: реальные варианты включаются в субботнюю ротацию.",\n    "При перегрузе сокращать лёгкие воскресные блоки, а не фиксированные занятия и не основные олимпиадные блоки."\n  ],\n  "notes": "Расписание подготовлено как импортируемые данные; школьные оценки в него не включены."\n}')}
+ catch(e){setScheduleStatus('Не удалось загрузить встроенный план: '+e.message,false)}
+}
+function initScheduleImport(){
+ const file=document.getElementById('scheduleFile'), fileBtn=document.getElementById('importScheduleFile'), urlBtn=document.getElementById('importScheduleUrl'), exp=document.getElementById('exportSchedule'), bundled=document.getElementById('loadBundledSchedule');
+ bundled?.addEventListener('click',loadBundledSchedule);
+ fileBtn?.addEventListener('click',()=>file.click());
+ file?.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;try{setScheduleStatus('Читаю файл…',true);await loadScheduleText(await f.text())}catch(e){setScheduleStatus(e.message,false)}finally{file.value=''}});
+ urlBtn?.addEventListener('click',importScheduleUrl); exp?.addEventListener('click',exportSchedule);
+}
+const ensureSeed=()=>{
+ let s=getState();
+ planner.planVersion=planner.planVersion||0;
+ if(planner.planVersion<2 && !s.tasks.some(t=>t.plan)){
+  // Replace only the site's generated plan. User-created tasks and completion data stay intact.
+  s.tasks=s.tasks.filter(t=>!t.plan);
+  const seed=[
+   ['2026-09-14','«Высшая проба» · филология: диагностическая работа по демоверсии 10 класса','move',60,'Определить текущий уровень перед подготовкой к 1-му туру.','1) Открыть официальный раздел материалов ВШЭ. 2) Взять демоверсию 2026/27 для 10 класса, 1 этап, 1 тур. 3) Решать 45 минут без подсказок. 4) 10 минут проверить. 5) 5 минут записать 3 ошибки.','Решение + 3 записи в журнале ошибок.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-09-14','Литература · ВСОШ: 1 короткий олимпиадный блок + разбор','move',60,'Поддержать вторую главную линию — ВСОШ по литературе.','45 минут: решить один блок задания прошлых лет/тренировочный вариант. 15 минут: проверить и выписать 2–3 ошибки.','Решённый блок и 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-14','Английский · мягкая IELTS-разминка','soft',30,'Познакомиться с форматом без перехода к тяжёлой подготовке.','20 минут: один короткий Listening или Reading sample. 10 минут: отметить незнакомые типы заданий и слова.','Один выполненный sample + 3 наблюдения.','https://ielts.org/'],
+   ['2026-09-15','ВСОШ · русский: финальная подготовка к школьному этапу','hard',60,'Подготовиться именно к ближайшему школьному этапу, не распыляясь.','30 минут: один тренировочный блок в формате школьного этапа. 20 минут: проверить. 10 минут: повторить 3 слабых места.','Ошибки разобраны; новых тем не добавлять.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-16','ВСОШ · русский: написать школьный этап','hard',120,'Реальное выступление.','Перед началом — только короткий просмотр инструкции. Во время работы не тренироваться и не искать решения. После — ничего не разбирать сразу, если устал.','Участие завершено; после появления работы сохранить результат/условия.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-17','ВСОШ · русский: разобрать ошибки после школьного этапа','move',45,'Превратить выступление в материал для дальнейшей подготовки.','Не пересдавать работу. Выписать: 1) что не знал; 2) где ошибся по невнимательности; 3) какой тип задания оказался трудным.','3 конкретных вывода для будущей подготовки.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-18','«Высшая проба» · филология: повторить слабое место №1','move',60,'Исправить одну диагностированную проблему, а не «учить филологию вообще».','Выбрать одну из ошибок 14.09. 25 минут — повторить правило/приём. 25 минут — решить 2 похожих задания. 10 минут — проверить.','2 аналогичных задания решены без подсказок.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-09-19','ВСОШ · литература: анализ текста с доказательствами','move',60,'Тренировать главный олимпиадный навык: тезис → текстовое доказательство → вывод.','Выбрать один фрагмент из тренировочного задания. Найти 3 особенности текста и к каждой дать конкретное доказательство. В конце — 5 минут самопроверки.','3 тезиса + 3 текстовых доказательства.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-20','«Высшая проба» · филология: проверить регистрацию и материалы','hard',20,'Убедиться, что организационная часть закрыта до дедлайна.','Проверить личный кабинет, профиль «Филология», подтверждение регистрации и доступ к материалам. Если всё в порядке — ничего дополнительно не менять.','Есть подтверждение регистрации/скрин в архиве.','https://olymp.hse.ru/'],
+   ['2026-09-21','«Высшая проба» · филология: крайний срок регистрации','hard',20,'Закрыть организационный риск.','Проверить статус регистрации до 14:00 МСК. Если всё уже подтверждено — задача считается выполненной.','Регистрация подтверждена.','https://olymp.hse.ru/'],
+   ['2026-09-22','«Высшая проба» · филология: тренировочный вариант 1-го тура','move',90,'Отработать работу в формате отбора.','60 минут — продолжить работу с официальной демоверсией 10 класса 1 этапа, 1 тура или взять вариант прошлого года. 20 минут — проверка. 10 минут — записать 3 ошибки и их причины.','Один законченный тренировочный блок + журнал ошибок.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-09-23','«Высшая проба» · филология: мини-цикл «ошибка → похожая задача → проверка»','move',90,'Закрепить навыки, которые просели на диагностике.','Выбрать 2 самые частые ошибки. На каждую: 15 минут теории → 15 минут похожих задач → 5 минут проверки. Оставшиеся 10 минут — итог.','2 слабых места проработаны; есть по одному правильному решению без подсказки.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-09-24','«Высшая проба» · филология: лёгкий повтор перед туром','move',45,'Сохранить форму и не перегрузиться.','20 минут — просмотреть журнал ошибок. 15 минут — решить 2 коротких задания на самые слабые типы. 10 минут — остановиться и подготовить всё необходимое.','2 задания решены; новых больших тем не начинать.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-09-26','«Высшая проба» · филология: участие в 1-м отборочном туре','hard',120,'Главная ближайшая цель — пройти во 2-й тур.','Перед началом: проверить время, интернет и правила. Во время работы: сначала уверенные задания, затем сложные; оставлять время на проверку.','Тур завершён; сохранить подтверждение участия.','https://olymp.hse.ru/'],
+   ['2026-09-27','«Высшая проба» · филология: разбор после 1-й попытки','move',60,'Не повторять ошибки между попытками.','Если есть доступ к работе/условиям — отметить 3 места, где потерял время или баллы. Если нет — восстановить по памяти ход решения. Составить 3 правила на 28.09.','3 конкретных правила для следующего выступления.','https://olymp.hse.ru/'],
+   ['2026-09-28','«Высшая проба» · филология: участие во 2-й назначенной попытке','hard',120,'Вторая контрольная точка текущего цикла.','Работать как на реальном туре. Не превращать этот день в дополнительную подготовку. После — сохранить подтверждение.','Тур завершён.','https://olymp.hse.ru/'],
+   ['2026-09-29','ВСОШ · литература: разбор ближайшей слабой зоны','move',60,'Подготовиться к школьному этапу 1 октября без перегруза.','25 минут — один тип задания, который даётся хуже всего. 25 минут — похожая практика. 10 минут — проверка и фиксация ошибки.','Один слабый тип заданий проработан.','https://vserosolimp.edsoo.ru/'],
+   ['2026-09-30','ВСОШ · литература: лёгкий повтор перед школьным этапом','move',45,'Поддержать форму накануне выступления.','20 минут — перечитать собственный журнал ошибок. 15 минут — один короткий анализ текста. 10 минут — остановиться.','Без новых тем; только закрепление.','https://vserosolimp.edsoo.ru/'],
+   ['2026-10-01','ВСОШ · литература: написать школьный этап','hard',150,'Второе ключевое олимпиадное выступление сентября–октября.','Перед началом — инструкция и время. Во время работы — сначала понятные задания, затем сложные; обязательно оставить время на проверку.','Участие завершено; сохранить условия/работу, если доступно.','https://vserosolimp.edsoo.ru/'],
+   ['2026-10-02','ВСОШ · литература: короткий разбор + восстановление','soft',20,'Не превращать день после олимпиады в ещё один тяжёлый день.','Записать максимум 3 наблюдения: что получилось, что было трудно, что повторить позже.','3 наблюдения; дальше отдых.','https://vserosolimp.edsoo.ru/'],
+   ['2026-10-03','«Высшая проба» · филология: разобрать результат/опыт сентябрьского цикла','move',90,'Собрать данные для следующего этапа подготовки.','20 минут — восстановить задания, которые вызвали трудности. 40 минут — решить 2 похожих задания. 30 минут — разбор. Если результаты ещё не опубликованы, работать по памяти.','Список из 3 сильных и 3 слабых навыков.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-10-05','«Высшая проба» · филология: анализ текста — тезис и доказательство','move',60,'Укрепить письменную аргументацию.','30 минут — один аналитический фрагмент. 20 минут — переписать 2 слабых ответа в сильной форме. 10 минут — проверить, есть ли текстовые доказательства.','2 улучшенных ответа с доказательствами.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-10-07','ВСОШ · литература: разбор школьного этапа','move',60,'Использовать реальную работу как диагностический материал.','Разделить ошибки на: знания / невнимательность / анализ / аргументация / формат. Для каждой категории выбрать одно исправляющее действие.','Карта ошибок по 5 категориям.','https://vserosolimp.edsoo.ru/'],
+   ['2026-10-11','«Высшая проба» · филология: проверить статус отбора','hard',20,'Закрыть организационный хвост после окна участия.','Проверить личный кабинет/результаты и записать статус. Если пройден 2-й тур — перейти в план подготовки к нему; если нет — использовать результат для следующего цикла.','Статус записан в журнале.','https://olymp.hse.ru/'],
+   ['2026-10-12','Осенний цикл: мини-ревизия навыков','soft',45,'Решить, что переносим в ноябрь.','Оценить 5 блоков: эрудиция, анализ текста, сопоставление, терминология, олимпиадное мышление. Для каждого поставить 0–2 и выбрать 2 приоритетных навыка.','Таблица 5 навыков + 2 приоритета.','https://olymp.hse.ru/mmo/materials-literature'],
+   ['2026-10-15','Олимпиады: обновить ближайшие дедлайны и цели','soft',30,'Не потерять регистрацию СПбГУ и другие возможности.','Проверить официальный календарь и обновить только реальные ближайшие сроки. Отдельно отметить СПбГУ: филология.','Обновлённый список дедлайнов.','https://olymp.spbu.ru/'],
+   ['2026-10-31','Ноябрь: план нагрузки по реальному школьному графику','hard',45,'Сделать план реалистичным, а не максимальным.','Посмотреть фактическую загрузку октября. Определить 3 главных олимпиадных результата на ноябрь и допустимый минимум занятий.','3 цели + недельный минимум.','https://olymp.spbu.ru/'],
+   ['2026-11-02','СПбГУ · филология: первый тренировочный блок','move',90,'Начать отдельную линию подготовки к СПбГУ после сентябрьского цикла.','Взять официальный материал/задание СПбГУ. 60 минут — самостоятельное решение. 20 минут — проверка. 10 минут — 3 ошибки.','Один блок СПбГУ + 3 ошибки.','https://olymp.spbu.ru/'],
+   ['2026-11-07','ВСОШ · литература: олимпиадная практика','move',60,'Продолжать линию ВСОШ, если прошёл дальше школьного этапа.','Один вариант/блок прошлых лет: 45 минут решение + 15 минут разбор.','Решение + журнал ошибок.','https://vserosolimp.edsoo.ru/'],
+   ['2026-11-14','СПбГУ · филология: практика + текстовый анализ','move',90,'Углублять навык работы с филологическим материалом.','60 минут — официальный/прошлогодний блок. 20 минут — разбор. 10 минут — записать, какие аргументы принесли баллы.','Один блок + 3 вывода о критериях ответа.','https://olymp.spbu.ru/'],
+   ['2026-11-21','ВСОШ · литература: практика + разбор','move',60,'Поддерживать результат без перегруза.','45 минут — один олимпиадный блок. 15 минут — разбор.','Решение + 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
+   ['2026-11-30','Декабрь: пересборка плана','hard',45,'Подстроить подготовку под результаты ноября.','Сравнить ошибки октября и ноября. Убрать то, что уже стабильно получается. Выбрать 2 навыка на декабрь.','2 приоритета декабря.','https://olymp.spbu.ru/'],
+   ['2026-12-05','СПбГУ · филология: основной тренировочный блок','move',90,'Готовиться к ключевой для классической филологии олимпиаде.','60 минут — задание/вариант. 20 минут — проверка. 10 минут — журнал ошибок.','Один блок + 3 ошибки.','https://olymp.spbu.ru/'],
+   ['2026-12-12','ВСОШ · литература: практика','move',60,'Поддерживать форму перед возможным муниципальным/региональным этапом.','45 минут решение + 15 минут разбор.','Решение + 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
+   ['2026-12-19','СПбГУ · филология: практика + разбор','move',90,'Закрыть декабрьский цикл конкретной тренировкой.','60 минут решение. 20 минут проверка. 10 минут — выбрать один навык для январского усиления.','Один блок + один январский приоритет.','https://olymp.spbu.ru/'],
+   ['2026-12-27','Осенний цикл: итоговая диагностика','soft',60,'Понять реальный прогресс, а не только количество часов.','Сравнить сентябрьскую диагностику с декабрьским блоком. Выписать 3 улучшения, 3 нерешённые проблемы и 3 цели на январь.','Итоговая заметка 3×3×3.','https://olymp.spbu.ru/'],
+   ['2026-12-31','Квартальный пересмотр Via Classica','hard',60,'Обновить план на следующие 3 месяца по реальным результатам.','Вместе пересмотреть олимпиады, IELTS, поступление и нагрузку. Удалить устаревшие задачи; добавить только подтверждённые ближайшие шаги.','Обновлённый план января–марта.','https://olymp.spbu.ru/']
+  ];
+  seed.forEach((x,i)=>s.tasks.push({id:'plan2-'+i,date:x[0],text:x[1],type:x[2],minutes:x[3],done:false,plan:true,goal:x[4],steps:x[5],result:x[6],resource:x[7]}));
+  saveState(s);planner.planVersion=2;planner.seeded=true;savePlanner();
+ }
+};
+function spend(s,d){return s.tasks.filter(t=>t.date===d&&!isDone(t)&&!isFixed(t)&&t.countsTowardCapacity!==false).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
+function nextOpenDate(from,minutes=45,limit=90){const safe=Number.isFinite(Number(minutes))?Math.max(5,Number(minutes)):45;const s=getState();for(let i=1;i<=limit;i++){const nd=add(from,i);if(planner.frozen[nd])continue;if(spend(s,nd)+safe<=selfCapacity(s,nd))return nd}for(let i=1;i<=limit;i++){const nd=add(from,i);if(!planner.frozen[nd])return nd}return add(from,1)}
+function autoCompleteFixed(s){const d=today();let changed=false;s.tasks.forEach(t=>{if(isFixed(t)&&!isDone(t)&&t.date<d){t.done=true;t.doneAutomatically=true;t.completedAt=new Date().toISOString();if(!Number.isFinite(Number(t.actualMinutes)))t.actualMinutes=Number(t.minutes)||45;changed=true;}});return changed}
+function moveTaskToOpenDay(s,t,from,limit=60){const safe=Number(t.minutes)||45;for(let i=1;i<=limit;i++){const nd=add(from,i);if(planner.frozen[nd])continue;if(spend(s,nd)+safe<=selfCapacity(s,nd)){t.date=nd;t.replanned=true;return true}}return false}
+function rebalanceOverloadedDays(s){let moved=0;for(let offset=0;offset<60;offset++){const d=add(today(),offset);if(planner.frozen[d])continue;let guard=0;while(spend(s,d)>selfCapacity(s,d)&&guard++<100){const candidates=s.tasks.filter(t=>t.date===d&&!isDone(t)&&!isFixed(t)&&t.type!=='hard').sort((a,b)=>priorityScore(a)-priorityScore(b)||Number(b.minutes)-Number(a.minutes));const t=candidates[0];if(!t)break;if(moveTaskToOpenDay(s,t,d)){moved++;}else break;}}return moved}
+function replan(){
+ let s=getState(),d=today(), moved=0;
+ if(autoCompleteFixed(s)){}
+ s.tasks.filter(t=>!isDone(t)&&!isFixed(t)&&t.type!=='hard'&&t.date<d).sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{if(moveTaskToOpenDay(s,t,d,21))moved++;});
+ moved+=rebalanceOverloadedDays(s);
+ saveState(s); return moved;
+}
+function render(){
+ ensureSeed(); const s=getState(),d=today(),mode=planner.modes[d]||'normal';
+ const modeEl=document.getElementById('dayMode'); if(modeEl)modeEl.value=mode;
+ const cap=selfCapacity(s,d), used=spend(s,d), fixed=fixedSpend(s,d); const sum=document.getElementById('todaySummary');
+ if(sum)sum.innerHTML='<span>'+used+' / '+cap+' мин</span><i><em style="width:'+(cap?Math.min(100,Math.round(used/cap*100)):100)+'%"></em></i><small>'+Math.max(0,cap-used)+' мин свободно'+(fixed?' · фиксировано '+fixed+' мин':'')+'</small>'; 
+ const td=document.getElementById('todayDate'); if(td)td.textContent=dt(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+ const mt=document.getElementById('monthTitle'); if(mt)mt.textContent=dt(d).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+ const mn=document.getElementById('monthNumber'); if(mn)mn.textContent=String(dt(d).getMonth()+1).padStart(2,'0');
+ const badge=document.querySelector('.today-badge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
+ const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),fallback={
+  '2026-09':[['21.09','«Высшая проба» · дедлайн регистрации (14:00 МСК)']],
+  '2026-10':[['11.10','«Высшая проба» · окончание окна 1 тура'],['31.10','Ревизия плана на ноябрь']],
+  '2026-11':[['30.11','Ревизия плана на декабрь']], '2026-12':[['31.12','Квартальный пересмотр плана']]};
+  const imported=Array.isArray(planner.scheduleEvents)?planner.scheduleEvents.filter(e=>e&&String(e.date||'').slice(0,7)===key):[];
+  const importedList=imported.map(e=>[String(e.time||e.date||'').slice(0,10),String(e.title||e.text||'Событие')]);
+  const list=[...(fallback[key]||[]),...importedList].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ru'));
+  events.innerHTML=list.map(e=>'<div class="month-event"><time>'+esc(e[0])+'</time><span>'+esc(e[1])+'</span></div>').join('')||'<div class="empty">Для этого месяца пока нет зафиксированных событий.</div>';
+ }
+ const box=document.getElementById('alerts');if(box){box.innerHTML='';if(planner.frozen[d])box.innerHTML='<div class="alert ok">💤 Сегодня заморожен. План не создаёт долга.</div>';let overdue=s.tasks.filter(t=>!isDone(t)&&t.type==='hard'&&t.date<d);if(overdue.length)box.innerHTML+='<div class="alert warn">⚠️ Жёстких задач с прошедшим сроком: '+overdue.length+'. Они не переносятся автоматически.</div>'}
+ // Override existing task renderer by updating DOM directly.
+ const list=document.getElementById('todayTasks'); if(list){let ts=s.tasks.filter(t=>t.date===d&&!isDone(t)&&!isFixed(t));list.innerHTML='';if(planner.frozen[d]){list.innerHTML='<div class="empty">День заморожен. Можно отдыхать без долга.</div>'}else if(!ts.length){list.innerHTML='<div class="empty">На сегодня нет незакрытых задач.</div>'}else ts.forEach(t=>{const r=document.createElement('div');r.className='task-item';r.innerHTML='<button class="task-check">○</button><span class="task-main"><b>'+esc(t.text)+'</b><small>'+t.minutes+' мин · '+(t.type==='hard'?'🔴 жёсткая':t.type==='soft'?'🟢 фоновая':'🟡 переносимая')+(t.replanned?' · перенесено':'')+'</small></span><button class="task-detail">подробнее</button><button class="task-more">⋯</button>';r.querySelector('.task-check').onclick=()=>{t.done=true;saveState(s);render()};r.querySelector('.task-detail').onclick=()=>{let msg=(t.goal?'ЦЕЛЬ\n'+t.goal+'\n\n':'')+(t.steps?'ЧТО ДЕЛАТЬ\n'+t.steps+'\n\n':'')+(t.result?'РЕЗУЛЬТАТ\n'+t.result:'');if(t.resource)msg+='\n\nОФИЦИАЛЬНЫЙ МАТЕРИАЛ\n'+t.resource;alert(msg||'Для этой задачи подробная инструкция пока не задана.');};r.querySelector('.task-more').onclick=()=>{const a=prompt('done = выполнено\n25 / 50 / 75 = частично\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(['25','50','75'].includes(a)){let left=Math.max(15,Math.round(t.minutes*(1-Number(a)/100)/15)*15);t.minutes=left;t.date=nextOpenDate(d,left)}else if(a==='skip'&&t.type!=='hard'){t.date=nextOpenDate(d,Number(t.minutes)||45)}else if(a==='delete'){s.tasks=s.tasks.filter(x=>x.id!==t.id)}saveState(s);render()};list.appendChild(r)})}
+}
+function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+ensureSeed(); initScheduleImport(); replan(); if(planner.scheduleTitle)setScheduleStatus('Активно расписание: '+planner.scheduleTitle+' · обновлено '+new Date(planner.scheduleUpdatedAt||Date.now()).toLocaleString('ru-RU'),true);
+document.getElementById('dayMode')?.addEventListener('change',e=>{planner.modes[today()]=['normal','light','heavy','vacation','festival'].includes(e.target.value)?e.target.value:'normal';savePlanner();render()});
+document.getElementById('freezeDay')?.addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
+document.getElementById('freezePeriod')?.addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}const requestedDays=Math.floor((dt(end)-dt(start))/86400000)+1;if(requestedDays>90){alert('Период слишком длинный. Максимум — 90 дней.');return}let d=start,n=0;while(d<=end){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
+document.getElementById('replanBtn')?.addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
+// The planner owns task creation so it can preserve plan metadata and storage state.
+document.getElementById('taskForm')?.addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput')?.value.trim();if(!text)return;const rawType=document.getElementById('taskType')?.value||'move';const rawMinutes=Number(document.getElementById('taskMinutes')?.value)||45;const minutes=Math.max(15,Math.min(600,rawMinutes));s.tasks.push({id:'u'+Date.now(),text,date:today(),type:['move','soft','hard'].includes(rawType)?rawType:'move',minutes,done:false,plan:false,userAdded:true,priority:'high'});saveState(s);replan();const input=document.getElementById('taskInput');if(input)input.value='';render()});
+render();
+})();

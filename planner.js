@@ -1,198 +1,149 @@
 (function(){
-const PKEY='viaClassicaPlannerV2';
-const SCHEDULE_FORMAT='via-classica-schedule-v1';
-const readPlannerStorage=key=>{try{return localStorage.getItem(key)}catch(_){return null}};
-let planner={};
-try { planner=JSON.parse(readPlannerStorage(PKEY)||'{}')||{}; } catch(e) {
-  const raw=readPlannerStorage(PKEY); try { if(raw) localStorage.setItem(PKEY+'_corrupt_backup',raw); } catch(_) {}
-  planner={};
+const PKEY='viaClassicaPlannerV3';
+const STATE_KEY='viaClassicaV2';
+const SCHEDULE_FORMAT='via-classica-schedule-v2';
+const WEEK=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const MODE_CAP={light:75,normal:120,heavy:165,rest:0};
+const MODE_NAME={light:'Лёгкий день',normal:'Обычный день',heavy:'Насыщенный день',rest:'Отдых'};
+const DAY_NAMES={0:'Воскресенье',1:'Понедельник',2:'Вторник',3:'Среда',4:'Четверг',5:'Пятница',6:'Суббота'};
+const LEGACY_PKEY='viaClassicaPlannerV2';
+const MIGRATION_KEY='viaClassicaPlannerV3_migration_v14';
+const read=k=>{try{return localStorage.getItem(k)}catch(_){return null}};
+const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.warn('Via Classica storage write failed',k,e);try{localStorage.setItem(k+'_storage_error_backup',JSON.stringify({at:new Date().toISOString(),value:v}))}catch(_){}return false}};
+function parseStored(key){const raw=read(key);if(!raw)return {value:null,raw:null,corrupt:false};try{const value=JSON.parse(raw);if(!value||typeof value!=='object'||Array.isArray(value)){try{if(!read(key+'_corrupt_backup'))localStorage.setItem(key+'_corrupt_backup',raw)}catch(_){}return {value:null,raw,corrupt:true}}return {value,raw,corrupt:false}}catch(e){try{if(!read(key+'_corrupt_backup'))localStorage.setItem(key+'_corrupt_backup',raw)}catch(_){}return {value:null,raw,corrupt:true}}}
+const activeStored=parseStored(PKEY);
+const legacyStored=parseStored(LEGACY_PKEY);
+const iso=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`};
+const today=()=>iso(new Date());
+const dt=s=>new Date(String(s)+'T12:00:00');
+const add=(s,n)=>{const d=dt(s);d.setDate(d.getDate()+n);return iso(d)};
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+let planner=activeStored.value||{};
+if(!planner.modes||typeof planner.modes!=='object'||Array.isArray(planner.modes))planner.modes={};
+if(!planner.frozen||typeof planner.frozen!=='object')planner.frozen={};
+if(!planner.recurring||!Array.isArray(planner.recurring))planner.recurring=[];
+if(!planner.actuals||typeof planner.actuals!=='object')planner.actuals={};
+if(!planner.chat||!Array.isArray(planner.chat))planner.chat=[];
+if(!planner.context||typeof planner.context!=='object')planner.context={};
+planner.version=14;
+const savePlanner=()=>write(PKEY,planner);
+function getState(){let s={};try{s=JSON.parse(read(STATE_KEY)||'{}')||{}}catch(_){s={}};s.tasks=Array.isArray(s.tasks)?s.tasks.filter(Boolean):[];return s}
+function saveState(s){return write(STATE_KEY,s)}
+function isDone(t){return t&& (t.done===true||t.status==='done')}
+function isFixed(t){return t&& (t.type==='fixed'||t.fixed===true)}
+function validDate(s){return /^\d{4}-\d{2}-\d{2}$/.test(String(s||'')) && iso(dt(s))===s}
+function weekdayOf(d){return dt(d).getDay()}
+function recurringForDate(d){const wd=weekdayOf(d);return planner.recurring.filter(x=>x.dayIndex===wd&&x.active!==false)}
+function actualFor(d,id,scheduled){const x=planner.actuals[d]&&planner.actuals[d][id];return Number.isFinite(Number(x))?Math.max(5,Math.min(600,Number(x))):scheduled}
+function fixedSpend(d){return recurringForDate(d).reduce((sum,x)=>sum+actualFor(d,x.id,x.minutes),0)}
+function fixedBuffer(d){return recurringForDate(d).reduce((sum,x)=>sum+(Number(x.bufferAfter)||0),0)}
+function mode(d){const m=planner.modes[d];return ['light','normal','heavy','rest'].includes(m)?m:'normal'}
+function selfCapacity(d){if(planner.frozen[d]||mode(d)==='rest')return 0;return Math.max(0,MODE_CAP[mode(d)]-fixedSpend(d)-fixedBuffer(d))}
+function userTasks(){return getState().tasks.filter(t=>!isFixed(t)&&!t.plan&&!isDone(t))}
+function spend(d){return userTasks().filter(t=>t.date===d).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
+function priority(t){return t&&t.userAdded?100:(t&&t.type==='hard'?95:(t&&t.type==='soft'?20:50))}
+function nextOpenDate(from,minutes=45){const s=getState();for(let i=1;i<=90;i++){const d=add(from,i);if(planner.frozen[d]||mode(d)==='rest')continue;if(spend(d)+minutes<=selfCapacity(d))return d}return add(from,1)}
+function moveTask(t,from){const d=nextOpenDate(from,Number(t.minutes)||45);t.date=d;t.replanned=true;return d}
+function replan(){const s=getState();let moved=0;const d=today();const candidates=s.tasks.filter(t=>!t.plan&&!isDone(t)&&!isFixed(t)&&t.date<d&&t.type!=='hard').sort((a,b)=>a.date.localeCompare(b.date));candidates.forEach(t=>{moveTask(t,d);moved++});for(let i=0;i<45;i++){const day=add(d,i);if(planner.frozen[day]||mode(day)==='rest')continue;let guard=0;while(spend(day)>selfCapacity(day)&&guard++<100){const cs=s.tasks.filter(t=>!t.plan&&t.date===day&&!isDone(t)&&!isFixed(t)&&t.type!=='hard').sort((a,b)=>priority(a)-priority(b)||Number(b.minutes)-Number(a.minutes));const t=cs[0];if(!t)break;moveTask(t,day);moved++}}saveState(s);savePlanner();return moved}
+function addUserTask(text,minutes,type='move',date=today(),activity=''){const s=getState();const t={id:'u'+Date.now()+Math.random().toString(16).slice(2),text:String(text),activity:String(activity||''),date,minutes:Math.max(5,Math.min(600,Number(minutes)||45)),type:['move','soft','hard'].includes(type)?type:'move',done:false,plan:false,userAdded:true,createdAt:new Date().toISOString()};s.tasks.push(t);saveState(s);replan();return t}
+function addRecurring(title,activity,dayIndex,minutes){const item={id:'r'+Date.now()+Math.random().toString(16).slice(2),title:String(title).trim(),activity:String(activity||'').trim(),dayIndex:Number(dayIndex),minutes:Math.max(5,Math.min(600,Number(minutes)||45)),bufferAfter:30,active:true,createdAt:new Date().toISOString()};planner.recurring.push(item);savePlanner();return item}
+function removeRecurring(query){const q=String(query).toLowerCase().trim();const exact=planner.recurring.filter(x=>x.title.toLowerCase()===q);const matches=exact.length?exact:planner.recurring.filter(x=>x.title.toLowerCase().includes(q));if(!matches.length)return null;if(matches.length>1)return {ambiguous:true,matches:matches.map(x=>`${x.title} — ${DAY_NAMES[x.dayIndex]}`)};const idx=planner.recurring.findIndex(x=>x.id===matches[0].id);return planner.recurring.splice(idx,1)[0]}
+function updateRecurring(query,dayIndex,minutes,title,activity){const q=String(query).toLowerCase().trim();const exact=planner.recurring.filter(x=>x.title.toLowerCase()===q);const matches=exact.length?exact:planner.recurring.filter(x=>x.title.toLowerCase().includes(q));if(!matches.length)return null;if(matches.length>1)return {ambiguous:true,matches:matches.map(x=>`${x.title} — ${DAY_NAMES[x.dayIndex]}`)};const x=matches[0];if(title)x.title=title;if(activity!==undefined)x.activity=activity;if(Number.isInteger(dayIndex))x.dayIndex=dayIndex;if(minutes)x.minutes=minutes;savePlanner();return x}
+function dayIndex(s){const q=String(s||'').toLowerCase().replace('ё','е');const map={воскресенье:0,вс:0,понедельник:1,пн:1,вторник:2,вт:2,среда:3,ср:3,четверг:4,чт:4,пятница:5,пт:5,суббота:6,сб:6};return Object.prototype.hasOwnProperty.call(map,q)?map[q]:null}
+function parseMinutes(s){const m=String(s||'').match(/(\d{1,3})/);return m?Number(m[1]):null}
+function splitFields(s){return String(s).split(',').map(x=>x.trim()).filter(Boolean)}
+function chatReply(input){
+ const raw=String(input||'').trim();const low=raw.toLowerCase();
+ if(!raw)return 'Напиши команду или изменение расписания.';
+ let m=raw.match(/(?:добав(?:ь|ить)\s+)(?:регулярное\s+)?занятие(?:\s*:\s*|\s+)(.+)$/i);
+ if(m){const f=splitFields(m[1]);if(f.length<4)return 'Нужно 4 поля: название, род деятельности, день недели, минуты. Например: «Добавь регулярное занятие: Подготовка к ВСОШ, олимпиадная подготовка, вторник, 60 минут». ';const d=dayIndex(f[2]);const mins=parseMinutes(f[3])||Number(f[3]);if(d===null||!mins)return 'Не смог понять день или длительность. Используй день недели и число минут.';const x=addRecurring(f[0],f[1],d,mins);render();return `Добавил регулярное занятие «${x.title}» — ${DAY_NAMES[d]}, ${x.minutes} мин. После него зарезервирован буфер 30 минут.`}
+ m=raw.match(/добав(?:ь|ить)\s+разовое\s+занятие\s*:\s*(.+)$/i);
+ if(m){const f=splitFields(m[1]);if(f.length<4)return 'Для разового занятия нужно: название, род деятельности, дата ГГГГ-ММ-ДД, минуты.';const mins=parseMinutes(f[3])||Number(f[3]);if(!validDate(f[2])||!mins)return 'Нужна корректная дата ГГГГ-ММ-ДД и длительность в минутах.';addUserTask(f[0],mins,'move',f[2],f[1]);render();return `Добавил разовое занятие «${f[0]}» на ${f[2]}, ${mins} мин.`}
+ m=raw.match(/(?:удали|убери)\s+(?:регулярное\s+)?занятие\s*:\s*(.+)$/i);
+ if(m){const x=removeRecurring(m[1]);if(!x)return `Не нашёл регулярное занятие «${m[1].trim()}».`;if(x.ambiguous)return `Нашёл несколько совпадений: ${x.matches.join('; ')}. Уточни день недели, чтобы я не удалил не то занятие.`;savePlanner();render();return `Убрал регулярное занятие «${x.title}».`}
+ m=raw.match(/(?:измени|поменяй)\s+(?:регулярное\s+)?занятие\s*:\s*(.+)$/i);
+ if(m){const f=splitFields(m[1]);if(f.length<4)return 'Для изменения используй: название, новый род деятельности, новый день, новые минуты.';const d=dayIndex(f[2]),mins=parseMinutes(f[3])||Number(f[3]);if(d===null||!mins)return 'Не смог понять день или длительность.';const x=updateRecurring(f[0],d,mins,f[0],f[1]);if(!x)return `Не нашёл регулярное занятие «${f[0]}».`;if(x.ambiguous)return `Нашёл несколько совпадений: ${x.matches.join('; ')}. Уточни день недели в названии занятия, чтобы я не изменил не то.`;render();return `Изменил «${x.title}»: ${DAY_NAMES[x.dayIndex]}, ${x.minutes} мин.`}
+ m=raw.match(/(?:сегодня|на сегодня).*?(?:устал|устала|мало сил|легкий|лёгкий|ничего тяж[её]лого)/i);
+ if(m){planner.modes[today()]='light';planner.context.todayNote=raw;savePlanner();replan();render();return 'Понял. Сегодня поставил лёгкий режим и не буду заполнять его задачами сверх этого.'}
+ if(/сегодня.*(?:нормальн|обычн)/i.test(low)){planner.modes[today()]='normal';planner.context.todayNote=raw;savePlanner();replan();render();return 'Поставил обычный режим на сегодня.'}
+ if(/сегодня.*(?:могу больше|много сил|насыщенн|тяж[её]л)/i.test(low)){planner.modes[today()]='heavy';planner.context.todayNote=raw;savePlanner();replan();render();return 'Поставил насыщенный режим на сегодня. Он всё равно оставляет резерв.'}
+ if(/(?:этой|следующей)\s+недел[еи].*(?:много|куча).*?(?:дз|домашн|школь)/i.test(low)||/много школьного дз|много домашнего задания/i.test(low)){planner.context.weekNote=raw;planner.context.weekNoteAt=today();savePlanner();render();return 'Учту: на этой неделе школьное ДЗ высокое. Via Classica не будет пытаться компенсировать это дополнительной нагрузкой.'}
+ if(/покажи|какое.*расписан|мое расписание|мо[ёе] расписание/i.test(low)){return renderRecurringText()}
+ return 'Я умею менять расписание обычным сообщением. Для регулярного занятия используй: «Добавь регулярное занятие: название, род деятельности, день недели, минуты». Можно также удалить/изменить его или добавить разовое занятие с датой.';
 }
-if(!planner || typeof planner!=='object' || Array.isArray(planner)) planner={};
-planner.modes=(planner.modes&&typeof planner.modes==='object'&&!Array.isArray(planner.modes))?planner.modes:{}; planner.frozen=(planner.frozen&&typeof planner.frozen==='object'&&!Array.isArray(planner.frozen))?planner.frozen:{}; planner.seeded=!!planner.seeded;
-const savePlanner=()=>{try{localStorage.setItem(PKEY,JSON.stringify(planner));return true}catch(e){console.warn('Via Classica planner settings storage error',e);try{localStorage.setItem(PKEY+'_storage_error_backup',JSON.stringify({at:Date.now(),planner}));}catch(_){}return false}};
-const iso=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}, today=()=>iso(new Date());
-const dt=s=>new Date(s+'T12:00:00'), add=(s,n)=>{let d=dt(s);d.setDate(d.getDate()+n);return iso(d)};
-const caps={normal:150,light:90,heavy:210,vacation:240,festival:30};
-const modeName={normal:'Обычный день',light:'Лёгкий день',heavy:'Тяжёлый день',vacation:'Каникулы',festival:'Фестиваль / поездка'};
-const stateRef=window.__viaState || null;
-// Existing app keeps its state in a lexical variable, so we use localStorage directly.
-const getState=()=>{
-  let s={};
-  try { s=JSON.parse(readPlannerStorage('viaClassicaV2')||'{}')||{}; } catch(e) {
-    try { const raw=readPlannerStorage('viaClassicaV2'); if(raw) localStorage.setItem('viaClassicaV2_corrupt_backup',raw); } catch(_) {}
-    s={};
-  }
-  s.tasks=Array.isArray(s.tasks)?s.tasks.filter(t=>t&&typeof t==='object').map(t=>{const out=Object.assign({},t);out.text=String(t.text||'').trim();out.date=String(t.date||'');out.type=['move','soft','hard'].includes(t.type)?t.type:'move';const n=Number(t.minutes);out.minutes=Number.isFinite(n)?Math.max(5,Math.min(600,n)):45;out.done=!!t.done;out.plan=!!t.plan;return out}):[];
-  return s
-};
-const saveState=s=>{try{localStorage.setItem('viaClassicaV2',JSON.stringify(s));return true}catch(e){console.warn('Via Classica planner storage error',e);try{localStorage.setItem('viaClassicaV2_storage_error_backup',JSON.stringify({at:Date.now(),state:s}));}catch(_){}return false}};
-const getTasks=()=>getState().tasks;
-const capacity=d=>caps[planner.modes[d]||'normal']||caps.normal;
-const validDate=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return false;const d=dt(String(s));return !Number.isNaN(d.getTime())&&iso(d)===String(s)};
-const isDone=t=>t.done===true||t.status==='done';
-function setScheduleStatus(msg,ok=true){const el=document.getElementById('scheduleStatus');if(el){el.textContent=msg;el.className='schedule-status '+(ok?'ok':'bad')}}
-function normalizeSchedule(raw){
- if(!raw || typeof raw!=='object') throw new Error('Файл не является объектом JSON.');
- if(raw.format && raw.format!==SCHEDULE_FORMAT) throw new Error('Неизвестный формат расписания. Нужен via-classica-schedule-v1.');
- let sourceTasks=Array.isArray(raw.tasks)?raw.tasks:[];
- // Accept the weekly-plan file used by Via Classica as well as the dated task export.
- if(!sourceTasks.length && raw.schema===SCHEDULE_FORMAT && raw.period && Array.isArray(raw.fixed_commitments) && Array.isArray(raw.self_study)){
-  const start=String(raw.period.start||''), end=String(raw.period.end||'');
-  if(!validDate(start)||!validDate(end)||end<start) throw new Error('В расписании указан неверный период.');
-  const weekdays={'Воскресенье':0,'Понедельник':1,'Вторник':2,'Среда':3,'Четверг':4,'Пятница':5,'Суббота':6};
-  const weekly=[...raw.fixed_commitments,...raw.self_study].filter(x=>x&&weekdays[x.day]!==undefined&&x.title);
-  const rotation=raw.rotation&&Array.isArray(raw.rotation.items)?raw.rotation.items:[];
-  let cur=dt(start), last=dt(end), idx=0, generated=[];
-  while(cur<=last){
-   const date=iso(cur), wd=cur.getDay(), dayName=Object.keys(weekdays).find(k=>weekdays[k]===wd);
-   weekly.filter(x=>x.day===dayName).forEach((x,i)=>generated.push({id:'weekly-'+date+'-'+i,date,text:String(x.title),type:x.type==='fixed'||x.hard?'hard':'move',minutes:Number.isFinite(Number(x.minutes))?Math.max(5,Math.min(600,Number(x.minutes))):45,done:false,plan:true,countsTowardCapacity:x.type!=='fixed'&&x.hard!==true,goal:x.priority?String(x.priority):'',steps:'',result:'',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'}));
-   if(wd===6 && rotation.length){
-    const title=rotation[idx%rotation.length];
-    generated.push({id:'rotation-'+date,date,text:String(title),type:'move',minutes:105,done:false,plan:true,goal:'Субботняя ротация олимпиадной подготовки.',steps:'Выполнить один полный вариант или соответствующий олимпиадный блок; затем кратко разобрать ошибки.',result:'Решение + журнал ошибок.',resource:'',sourceSchedule:raw.title||'Импортированный недельный план'});
-    idx++;
-   }
-   cur.setDate(cur.getDate()+1);
-  }
-  sourceTasks=generated;
+function renderRecurringText(){if(!planner.recurring.length)return 'Регулярных занятий пока нет.';return planner.recurring.map(x=>`• ${x.title} — ${x.activity||'без категории'}, ${DAY_NAMES[x.dayIndex]}, ${x.minutes} мин + 30 мин буфер`).join('\n')}
+function addChat(who,text){planner.chat.push({who,text,at:new Date().toISOString()});planner.chat=planner.chat.slice(-30);savePlanner()}
+function renderChat(){const box=document.getElementById('plannerChatMessages');if(!box)return;box.innerHTML='';planner.chat.forEach(m=>{const el=document.createElement('div');el.className='planner-chat-msg '+(m.who==='user'?'user':'assistant');el.innerHTML='<span>'+esc(m.who==='user'?'Ты':'Планер')+'</span><p>'+esc(m.text).replace(/\n/g,'<br>')+'</p>';box.appendChild(el)});box.scrollTop=box.scrollHeight}
+function renderRecurring(){const box=document.getElementById('recurringSchedule');if(!box)return;const byDay=WEEK.map((name,i)=>({name,i,items:planner.recurring.filter(x=>x.dayIndex===i&&x.active!==false)}));box.innerHTML=byDay.map(d=>`<div class="recurring-day"><b>${d.name}</b><div>${d.items.length?d.items.map(x=>`<div class="recurring-item"><span><strong>${esc(x.title)}</strong><small>${esc(x.activity||'')} · ${x.minutes} мин · +30 мин резерв</small></span><button data-remove-rec="${esc(x.id)}" aria-label="Удалить ${esc(x.title)}">×</button></div>`).join(''):'<small class="muted">нет регулярных занятий</small>'}</div></div>`).join('');box.querySelectorAll('[data-remove-rec]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.removeRec;const x=planner.recurring.find(r=>r.id===id);if(x){planner.recurring=planner.recurring.filter(r=>r.id!==id);savePlanner();render()}})}
+function renderFixed(){const box=document.getElementById('todayFixed');if(!box)return;const d=today(),items=recurringForDate(d);if(!items.length){box.innerHTML='<div class="empty">Сегодня фиксированных занятий нет.</div>';return}box.innerHTML=items.map(x=>{const actual=actualFor(d,x.id,x.minutes);return `<div class="fixed-item"><div><b>${esc(x.title)}</b><small>${esc(x.activity||'Фиксированное занятие')} · по плану ${x.minutes} мин · резерв после занятия 30 мин</small></div><button class="actual-btn" data-actual="${esc(x.id)}">Фактически ${actual} мин</button></div>`}).join('');box.querySelectorAll('[data-actual]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.actual;const x=items.find(r=>r.id===id);const current=actualFor(d,id,x.minutes);const value=prompt(`Фактическая длительность «${x.title}» (минуты):`,String(current));if(value===null)return;const n=Number(value);if(!Number.isFinite(n)||n<5||n>600){alert('Укажи число от 5 до 600 минут.');return}planner.actuals[d]=planner.actuals[d]||{};planner.actuals[d][id]=Math.round(n);savePlanner();replan();render()})}
+function weeklyFacts(){const d=today();const s=getState();let done=0,total=0,mins=0;for(let i=0;i<7;i++){const day=add(d,i);const ts=s.tasks.filter(t=>t.date===day&&!isFixed(t));total+=ts.length;done+=ts.filter(isDone).length;mins+=ts.reduce((a,t)=>a+(Number(t.minutes)||45),0)}const fixed=Array.from({length:7},(_,i)=>fixedSpend(add(d,i))).reduce((a,b)=>a+b,0);return {total,done,mins,fixed}}
+function render(){const d=today(),m=mode(d);const modeEl=document.getElementById('dayMode');if(modeEl)modeEl.value=m;const cap=selfCapacity(d),used=spend(d),fixed=fixedSpend(d),buffer=fixedBuffer(d);const sum=document.getElementById('todaySummary');if(sum)sum.innerHTML=`<span>${used} / ${cap} мин</span><i><em style="width:${cap?Math.min(100,Math.round(used/cap*100)):100}%"></em></i><small>${Math.max(0,cap-used)} мин свободно${fixed?' · фиксировано '+fixed+' мин':''}${buffer?' · резерв после занятий '+buffer+' мин':''}</small>`;const td=document.getElementById('todayDate');if(td)td.textContent=dt(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});const badge=document.querySelector('.today-badge');if(badge)badge.textContent=planner.frozen[d]?'отдых':MODE_NAME[m];const status=document.getElementById('plannerStatus');if(status){const wf=weeklyFacts();const fact=`Неделя: ${wf.total} самостоятельных задач, ${wf.done} выполнено, ${wf.mins} мин запланировано; фиксированные занятия ${wf.fixed} мин. Это факт, а не недельная норма.`;status.textContent=(planner.context.todayNote?planner.context.todayNote+' · ':'')+(planner.context.weekNote&&planner.context.weekNote!==planner.context.todayNote?planner.context.weekNote+' · ':'')+fact;}const list=document.getElementById('todayTasks');if(list){const s=getState(),ts=s.tasks.filter(t=>t.date===d&&!isDone(t)&&!isFixed(t)&&!t.plan);list.innerHTML=planner.frozen[d]?'<div class="empty">Сегодня отдых. Долга не создаём.</div>':(!ts.length?'<div class="empty">На сегодня нет обязательных задач Via Classica.</div>':ts.map(t=>`<div class="task-item"><button class="task-check" data-done="${esc(t.id)}">○</button><span class="task-main"><b>${esc(t.text)}</b><small>${t.minutes} мин${t.activity?' · '+esc(t.activity):''}${t.replanned?' · перенесено':''}</small></span><button class="task-more" data-more="${esc(t.id)}">⋯</button></div>`).join(''));list.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{const s2=getState(),t=s2.tasks.find(x=>x.id===b.dataset.done);if(t){t.done=true;t.completedAt=new Date().toISOString();saveState(s2);replan();render()}});list.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{const s2=getState(),t=s2.tasks.find(x=>x.id===b.dataset.more);if(!t)return;const a=prompt('done = выполнено\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(a==='skip')moveTask(t,d);else if(a==='delete')s2.tasks=s2.tasks.filter(x=>x.id!==t.id);saveState(s2);replan();render()})}
+renderFixed();renderRecurring();renderChat();
+const note=document.getElementById('plannerWeekNote');if(note)note.textContent=planner.context.weekNote||'Школьное ДЗ не заносится в Via Classica. Планер оставляет под него и под отдых свободное место.';
+}
+function migrate(){
+ // Idempotent, non-destructive v13.25/v13.29 -> v14 planner migration.
+ // Keep the old key untouched; the app's task/link/check state stays in viaClassicaV2.
+ const marker=read(MIGRATION_KEY);
+ const legacy=legacyStored.value||{};
+ if(!marker){
+   if(legacyStored.raw && !read(LEGACY_PKEY+'_pre_v14_backup')){try{localStorage.setItem(LEGACY_PKEY+'_pre_v14_backup',legacyStored.raw)}catch(e){console.warn('Could not duplicate legacy planner backup; original key remains intact')}}
+   const mergeObject=(key)=>{const old=legacy[key]&&typeof legacy[key]==='object'&&!Array.isArray(legacy[key])?legacy[key]:{};const current=planner[key]&&typeof planner[key]==='object'&&!Array.isArray(planner[key])?planner[key]:{};planner[key]=Object.assign({},old,current)};
+   mergeObject('modes'); mergeObject('frozen'); mergeObject('context');
+   {const old=legacy.actuals&&typeof legacy.actuals==='object'?legacy.actuals:{},cur=planner.actuals&&typeof planner.actuals==='object'?planner.actuals:{};planner.actuals={};new Set([...Object.keys(old),...Object.keys(cur)]).forEach(d=>{planner.actuals[d]=Object.assign({},old[d]&&typeof old[d]==='object'?old[d]:{},cur[d]&&typeof cur[d]==='object'?cur[d]:{})})}
+   Object.keys(planner.modes).forEach(d=>{if(planner.modes[d]==='vacation')planner.modes[d]='heavy';else if(planner.modes[d]==='festival')planner.modes[d]='light';else if(!['light','normal','heavy','rest'].includes(planner.modes[d]))delete planner.modes[d]});
+   {const old=Array.isArray(legacy.recurring)?legacy.recurring:[],cur=Array.isArray(planner.recurring)?planner.recurring:[];const merged=[];old.forEach(x=>merged.push({...x}));cur.forEach(x=>{const idx=merged.findIndex(y=>y.id===x.id||(String(y.title||'').trim().toLowerCase()===String(x.title||'').trim().toLowerCase()&&Number(y.dayIndex)===Number(x.dayIndex)));if(idx<0)merged.push({...x});else merged[idx]={...merged[idx],...x}});planner.recurring=merged}
+   if(!Array.isArray(planner.chat)||!planner.chat.length){if(Array.isArray(legacy.chat))planner.chat=legacy.chat.slice(-30)}
+   ['school','weekNote','seeded','planVersion','scheduleTitle','scheduleUpdatedAt','scheduleMeta','scheduleEvents'].forEach(k=>{if(planner[k]===undefined&&legacy[k]!==undefined)planner[k]=legacy[k]});
+   // Older releases kept scheduled tasks inside viaClassicaV2. Do not delete them.
+   // Mark legacy generated tasks as ordinary dated tasks so they remain visible and editable.
+   const s=getState();let changed=false;
+   s.tasks=s.tasks.map(t=>{if(t&&t.plan===true){changed=true;return {...t,plan:false,legacyPlan:true}}return t});
+   const tasksSaved=!changed||saveState(s);
+   if(!tasksSaved)console.warn('Could not persist legacy task normalization; original state remains in storage');
+   if(tasksSaved){try{localStorage.setItem(MIGRATION_KEY,JSON.stringify({version:14,at:new Date().toISOString(),source:'viaClassicaPlannerV2',tasksPreserved:true}))}catch(e){console.warn('Migration marker not saved; migration is designed to be idempotent')}}
  }
- if(!sourceTasks.length) throw new Error('В расписании нет задач.');
- const rawIds=sourceTasks.map(t=>String(t&&t.id||'')).filter(Boolean); if(new Set(rawIds).size!==rawIds.length) throw new Error('В расписании есть повторяющиеся ID задач.');
- const clean=sourceTasks.map((t,i)=>{
-  if(!t.date || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.date))) throw new Error('Задача №'+(i+1)+': неверная дата.');
-  if(!t.text) throw new Error('Задача №'+(i+1)+': нет названия.');
-  const date=String(t.date), parsed=dt(date);
-  if(Number.isNaN(parsed.getTime()) || iso(parsed)!==date) throw new Error('Задача №'+(i+1)+': несуществующая дата.');
-  const type=['move','soft','hard'].includes(t.type)?t.type:'move';
-  return {id:String(t.id||('import-'+Date.now()+'-'+i)),date,text:String(t.text),type,minutes:(()=>{const n=Number(t.minutes);return Number.isFinite(n)?Math.max(5,Math.min(600,n)):45})(),done:false,plan:true,countsTowardCapacity:t.countsTowardCapacity!==false,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||'',sourceSchedule:raw.title||'Импортированный план'};
- });
- return {title:raw.title||'Импортированный план',tasks:clean,meta:raw.meta&&typeof raw.meta==='object'&&!Array.isArray(raw.meta)?raw.meta:{period:raw.period||null},events:Array.isArray(raw.events)?raw.events.filter(e=>e&&typeof e==='object').map(e=>({date:String(e.date||''),time:String(e.time||''),title:String(e.title||e.text||'Событие')})).filter(e=>validDate(e.date)):[]};
+ const defaults=[
+{id:'fixed-mon-litclub',title:'Литературный клуб',activity:'литературный клуб',dayIndex:1,minutes:75,bufferAfter:30,active:true},
+{id:'fixed-wed-ielts',title:'IELTS + Speaking',activity:'английский / IELTS / speaking',dayIndex:3,minutes:60,bufferAfter:30,active:true},
+{id:'fixed-thu-literature',title:'ЕГЭ литература',activity:'ЕГЭ · литература',dayIndex:4,minutes:90,bufferAfter:30,active:true},
+{id:'fixed-sun-ielts',title:'IELTS + Speaking',activity:'английский / IELTS / speaking',dayIndex:0,minutes:60,bufferAfter:30,active:true}
+];
+ if(!Array.isArray(planner.recurring))planner.recurring=[];
+ defaults.forEach(def=>{const exists=planner.recurring.some(x=>x.id===def.id||(String(x.title||'').trim().toLowerCase()===def.title.toLowerCase()&&Number(x.dayIndex)===def.dayIndex));if(!exists)planner.recurring.push(def)});
+ planner.school=planner.school||{start:'09:00',end:'15:45',usualHome:'17:30',wake:'06:30',sleepGoal:'23:00',lunch:'около 17:30–18:00',dinner:'около 20:00–20:30',road:'личное время; только короткая лёгкая практика по желанию',schoolHomework:'вне Via Classica'};
+ planner.weekNote=planner.weekNote||'Не заполнять всё свободное время. Всегда оставлять резерв и отдых.';
+ planner.version=14;savePlanner();
 }
-function applySchedule(raw){
- const plan=normalizeSchedule(raw), s=getState(), old=s.tasks.filter(t=>t.plan);
- const doneById=new Map(old.map(t=>[String(t.id),!!t.done]));
- // Preserve completion only for tasks with the same stable id; replace the generated plan wholesale.
- plan.tasks.forEach(t=>{if(doneById.get(String(t.id)))t.done=true});
- s.tasks=s.tasks.filter(t=>!t.plan).concat(plan.tasks);
- saveState(s);
- planner.planVersion=10; planner.seeded=true; planner.scheduleTitle=plan.title; planner.scheduleUpdatedAt=new Date().toISOString();
- planner.scheduleMeta=plan.meta; planner.scheduleEvents=plan.events;
- savePlanner();
- const moved=replan();
- render();
- setScheduleStatus('Загружено: '+plan.title+' · '+plan.tasks.length+' задач · пересчитано переносов: '+moved,true);
-}
-async function loadScheduleText(text){
- let raw; try{raw=JSON.parse(text)}catch(e){throw new Error('Не удалось прочитать JSON. Проверь файл или ссылку.')} applySchedule(raw);
-}
-function schedulePayload(){
- const s=getState();
- return {format:SCHEDULE_FORMAT,title:planner.scheduleTitle||'Via Classica — текущий план',generatedAt:new Date().toISOString(),meta:planner.scheduleMeta||{},events:planner.scheduleEvents||[],tasks:s.tasks.filter(t=>t.plan).map(t=>({id:t.id,date:t.date,text:t.text,type:t.type,minutes:t.minutes,countsTowardCapacity:t.countsTowardCapacity!==false,goal:t.goal||'',steps:t.steps||'',result:t.result||'',resource:t.resource||''}))};
-}
-function exportSchedule(){
- const blob=new Blob([JSON.stringify(schedulePayload(),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='via-classica-schedule.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); setScheduleStatus('Текущий план сохранён в файл via-classica-schedule.json.',true);
-}
-async function importScheduleUrl(){
- const url=prompt('Вставь прямую ссылку на JSON-файл расписания. Для GitHub используй Raw-ссылку.'); if(!url)return;
- try{setScheduleStatus('Загружаю расписание…',true);const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}catch(e){setScheduleStatus('Не удалось загрузить: '+e.message+' Если сайт запрещает запрос, скачай JSON и загрузи его файлом.',false)}
-}
-async function loadBundledSchedule(){
- try{setScheduleStatus('Восстанавливаю встроенный текущий план…',true);const res=await fetch('./via-classica-schedule-current.json?v=13.25',{cache:'no-store'});if(!res.ok)throw new Error('Сервер вернул '+res.status+'.');await loadScheduleText(await res.text())}
- catch(e){setScheduleStatus('Не удалось загрузить встроенный план: '+e.message,false)}
-}
-function initScheduleImport(){
- const file=document.getElementById('scheduleFile'), fileBtn=document.getElementById('importScheduleFile'), urlBtn=document.getElementById('importScheduleUrl'), exp=document.getElementById('exportSchedule'), bundled=document.getElementById('loadBundledSchedule');
- bundled?.addEventListener('click',loadBundledSchedule);
- fileBtn?.addEventListener('click',()=>file.click());
- file?.addEventListener('change',async()=>{const f=file.files?.[0];if(!f)return;try{setScheduleStatus('Читаю файл…',true);await loadScheduleText(await f.text())}catch(e){setScheduleStatus(e.message,false)}finally{file.value=''}});
- urlBtn?.addEventListener('click',importScheduleUrl); exp?.addEventListener('click',exportSchedule);
-}
-const ensureSeed=()=>{
- let s=getState();
- planner.planVersion=planner.planVersion||0;
- if(planner.planVersion<2 && !s.tasks.some(t=>t.plan)){
-  // Replace only the site's generated plan. User-created tasks and completion data stay intact.
-  s.tasks=s.tasks.filter(t=>!t.plan);
-  const seed=[
-   ['2026-09-14','«Высшая проба» · филология: диагностическая работа по демоверсии 10 класса','move',60,'Определить текущий уровень перед подготовкой к 1-му туру.','1) Открыть официальный раздел материалов ВШЭ. 2) Взять демоверсию 2026/27 для 10 класса, 1 этап, 1 тур. 3) Решать 45 минут без подсказок. 4) 10 минут проверить. 5) 5 минут записать 3 ошибки.','Решение + 3 записи в журнале ошибок.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-09-14','Литература · ВСОШ: 1 короткий олимпиадный блок + разбор','move',60,'Поддержать вторую главную линию — ВСОШ по литературе.','45 минут: решить один блок задания прошлых лет/тренировочный вариант. 15 минут: проверить и выписать 2–3 ошибки.','Решённый блок и 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-14','Английский · мягкая IELTS-разминка','soft',30,'Познакомиться с форматом без перехода к тяжёлой подготовке.','20 минут: один короткий Listening или Reading sample. 10 минут: отметить незнакомые типы заданий и слова.','Один выполненный sample + 3 наблюдения.','https://ielts.org/'],
-   ['2026-09-15','ВСОШ · русский: финальная подготовка к школьному этапу','hard',60,'Подготовиться именно к ближайшему школьному этапу, не распыляясь.','30 минут: один тренировочный блок в формате школьного этапа. 20 минут: проверить. 10 минут: повторить 3 слабых места.','Ошибки разобраны; новых тем не добавлять.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-16','ВСОШ · русский: написать школьный этап','hard',120,'Реальное выступление.','Перед началом — только короткий просмотр инструкции. Во время работы не тренироваться и не искать решения. После — ничего не разбирать сразу, если устал.','Участие завершено; после появления работы сохранить результат/условия.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-17','ВСОШ · русский: разобрать ошибки после школьного этапа','move',45,'Превратить выступление в материал для дальнейшей подготовки.','Не пересдавать работу. Выписать: 1) что не знал; 2) где ошибся по невнимательности; 3) какой тип задания оказался трудным.','3 конкретных вывода для будущей подготовки.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-18','«Высшая проба» · филология: повторить слабое место №1','move',60,'Исправить одну диагностированную проблему, а не «учить филологию вообще».','Выбрать одну из ошибок 14.09. 25 минут — повторить правило/приём. 25 минут — решить 2 похожих задания. 10 минут — проверить.','2 аналогичных задания решены без подсказок.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-09-19','ВСОШ · литература: анализ текста с доказательствами','move',60,'Тренировать главный олимпиадный навык: тезис → текстовое доказательство → вывод.','Выбрать один фрагмент из тренировочного задания. Найти 3 особенности текста и к каждой дать конкретное доказательство. В конце — 5 минут самопроверки.','3 тезиса + 3 текстовых доказательства.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-20','«Высшая проба» · филология: проверить регистрацию и материалы','hard',20,'Убедиться, что организационная часть закрыта до дедлайна.','Проверить личный кабинет, профиль «Филология», подтверждение регистрации и доступ к материалам. Если всё в порядке — ничего дополнительно не менять.','Есть подтверждение регистрации/скрин в архиве.','https://olymp.hse.ru/'],
-   ['2026-09-21','«Высшая проба» · филология: крайний срок регистрации','hard',20,'Закрыть организационный риск.','Проверить статус регистрации до 14:00 МСК. Если всё уже подтверждено — задача считается выполненной.','Регистрация подтверждена.','https://olymp.hse.ru/'],
-   ['2026-09-22','«Высшая проба» · филология: тренировочный вариант 1-го тура','move',90,'Отработать работу в формате отбора.','60 минут — продолжить работу с официальной демоверсией 10 класса 1 этапа, 1 тура или взять вариант прошлого года. 20 минут — проверка. 10 минут — записать 3 ошибки и их причины.','Один законченный тренировочный блок + журнал ошибок.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-09-23','«Высшая проба» · филология: мини-цикл «ошибка → похожая задача → проверка»','move',90,'Закрепить навыки, которые просели на диагностике.','Выбрать 2 самые частые ошибки. На каждую: 15 минут теории → 15 минут похожих задач → 5 минут проверки. Оставшиеся 10 минут — итог.','2 слабых места проработаны; есть по одному правильному решению без подсказки.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-09-24','«Высшая проба» · филология: лёгкий повтор перед туром','move',45,'Сохранить форму и не перегрузиться.','20 минут — просмотреть журнал ошибок. 15 минут — решить 2 коротких задания на самые слабые типы. 10 минут — остановиться и подготовить всё необходимое.','2 задания решены; новых больших тем не начинать.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-09-26','«Высшая проба» · филология: участие в 1-м отборочном туре','hard',120,'Главная ближайшая цель — пройти во 2-й тур.','Перед началом: проверить время, интернет и правила. Во время работы: сначала уверенные задания, затем сложные; оставлять время на проверку.','Тур завершён; сохранить подтверждение участия.','https://olymp.hse.ru/'],
-   ['2026-09-27','«Высшая проба» · филология: разбор после 1-й попытки','move',60,'Не повторять ошибки между попытками.','Если есть доступ к работе/условиям — отметить 3 места, где потерял время или баллы. Если нет — восстановить по памяти ход решения. Составить 3 правила на 28.09.','3 конкретных правила для следующего выступления.','https://olymp.hse.ru/'],
-   ['2026-09-28','«Высшая проба» · филология: участие во 2-й назначенной попытке','hard',120,'Вторая контрольная точка текущего цикла.','Работать как на реальном туре. Не превращать этот день в дополнительную подготовку. После — сохранить подтверждение.','Тур завершён.','https://olymp.hse.ru/'],
-   ['2026-09-29','ВСОШ · литература: разбор ближайшей слабой зоны','move',60,'Подготовиться к школьному этапу 1 октября без перегруза.','25 минут — один тип задания, который даётся хуже всего. 25 минут — похожая практика. 10 минут — проверка и фиксация ошибки.','Один слабый тип заданий проработан.','https://vserosolimp.edsoo.ru/'],
-   ['2026-09-30','ВСОШ · литература: лёгкий повтор перед школьным этапом','move',45,'Поддержать форму накануне выступления.','20 минут — перечитать собственный журнал ошибок. 15 минут — один короткий анализ текста. 10 минут — остановиться.','Без новых тем; только закрепление.','https://vserosolimp.edsoo.ru/'],
-   ['2026-10-01','ВСОШ · литература: написать школьный этап','hard',150,'Второе ключевое олимпиадное выступление сентября–октября.','Перед началом — инструкция и время. Во время работы — сначала понятные задания, затем сложные; обязательно оставить время на проверку.','Участие завершено; сохранить условия/работу, если доступно.','https://vserosolimp.edsoo.ru/'],
-   ['2026-10-02','ВСОШ · литература: короткий разбор + восстановление','soft',20,'Не превращать день после олимпиады в ещё один тяжёлый день.','Записать максимум 3 наблюдения: что получилось, что было трудно, что повторить позже.','3 наблюдения; дальше отдых.','https://vserosolimp.edsoo.ru/'],
-   ['2026-10-03','«Высшая проба» · филология: разобрать результат/опыт сентябрьского цикла','move',90,'Собрать данные для следующего этапа подготовки.','20 минут — восстановить задания, которые вызвали трудности. 40 минут — решить 2 похожих задания. 30 минут — разбор. Если результаты ещё не опубликованы, работать по памяти.','Список из 3 сильных и 3 слабых навыков.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-10-05','«Высшая проба» · филология: анализ текста — тезис и доказательство','move',60,'Укрепить письменную аргументацию.','30 минут — один аналитический фрагмент. 20 минут — переписать 2 слабых ответа в сильной форме. 10 минут — проверить, есть ли текстовые доказательства.','2 улучшенных ответа с доказательствами.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-10-07','ВСОШ · литература: разбор школьного этапа','move',60,'Использовать реальную работу как диагностический материал.','Разделить ошибки на: знания / невнимательность / анализ / аргументация / формат. Для каждой категории выбрать одно исправляющее действие.','Карта ошибок по 5 категориям.','https://vserosolimp.edsoo.ru/'],
-   ['2026-10-11','«Высшая проба» · филология: проверить статус отбора','hard',20,'Закрыть организационный хвост после окна участия.','Проверить личный кабинет/результаты и записать статус. Если пройден 2-й тур — перейти в план подготовки к нему; если нет — использовать результат для следующего цикла.','Статус записан в журнале.','https://olymp.hse.ru/'],
-   ['2026-10-12','Осенний цикл: мини-ревизия навыков','soft',45,'Решить, что переносим в ноябрь.','Оценить 5 блоков: эрудиция, анализ текста, сопоставление, терминология, олимпиадное мышление. Для каждого поставить 0–2 и выбрать 2 приоритетных навыка.','Таблица 5 навыков + 2 приоритета.','https://olymp.hse.ru/mmo/materials-literature'],
-   ['2026-10-15','Олимпиады: обновить ближайшие дедлайны и цели','soft',30,'Не потерять регистрацию СПбГУ и другие возможности.','Проверить официальный календарь и обновить только реальные ближайшие сроки. Отдельно отметить СПбГУ: филология.','Обновлённый список дедлайнов.','https://olymp.spbu.ru/'],
-   ['2026-10-31','Ноябрь: план нагрузки по реальному школьному графику','hard',45,'Сделать план реалистичным, а не максимальным.','Посмотреть фактическую загрузку октября. Определить 3 главных олимпиадных результата на ноябрь и допустимый минимум занятий.','3 цели + недельный минимум.','https://olymp.spbu.ru/'],
-   ['2026-11-02','СПбГУ · филология: первый тренировочный блок','move',90,'Начать отдельную линию подготовки к СПбГУ после сентябрьского цикла.','Взять официальный материал/задание СПбГУ. 60 минут — самостоятельное решение. 20 минут — проверка. 10 минут — 3 ошибки.','Один блок СПбГУ + 3 ошибки.','https://olymp.spbu.ru/'],
-   ['2026-11-07','ВСОШ · литература: олимпиадная практика','move',60,'Продолжать линию ВСОШ, если прошёл дальше школьного этапа.','Один вариант/блок прошлых лет: 45 минут решение + 15 минут разбор.','Решение + журнал ошибок.','https://vserosolimp.edsoo.ru/'],
-   ['2026-11-14','СПбГУ · филология: практика + текстовый анализ','move',90,'Углублять навык работы с филологическим материалом.','60 минут — официальный/прошлогодний блок. 20 минут — разбор. 10 минут — записать, какие аргументы принесли баллы.','Один блок + 3 вывода о критериях ответа.','https://olymp.spbu.ru/'],
-   ['2026-11-21','ВСОШ · литература: практика + разбор','move',60,'Поддерживать результат без перегруза.','45 минут — один олимпиадный блок. 15 минут — разбор.','Решение + 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
-   ['2026-11-30','Декабрь: пересборка плана','hard',45,'Подстроить подготовку под результаты ноября.','Сравнить ошибки октября и ноября. Убрать то, что уже стабильно получается. Выбрать 2 навыка на декабрь.','2 приоритета декабря.','https://olymp.spbu.ru/'],
-   ['2026-12-05','СПбГУ · филология: основной тренировочный блок','move',90,'Готовиться к ключевой для классической филологии олимпиаде.','60 минут — задание/вариант. 20 минут — проверка. 10 минут — журнал ошибок.','Один блок + 3 ошибки.','https://olymp.spbu.ru/'],
-   ['2026-12-12','ВСОШ · литература: практика','move',60,'Поддерживать форму перед возможным муниципальным/региональным этапом.','45 минут решение + 15 минут разбор.','Решение + 2–3 ошибки.','https://vserosolimp.edsoo.ru/'],
-   ['2026-12-19','СПбГУ · филология: практика + разбор','move',90,'Закрыть декабрьский цикл конкретной тренировкой.','60 минут решение. 20 минут проверка. 10 минут — выбрать один навык для январского усиления.','Один блок + один январский приоритет.','https://olymp.spbu.ru/'],
-   ['2026-12-27','Осенний цикл: итоговая диагностика','soft',60,'Понять реальный прогресс, а не только количество часов.','Сравнить сентябрьскую диагностику с декабрьским блоком. Выписать 3 улучшения, 3 нерешённые проблемы и 3 цели на январь.','Итоговая заметка 3×3×3.','https://olymp.spbu.ru/'],
-   ['2026-12-31','Квартальный пересмотр Via Classica','hard',60,'Обновить план на следующие 3 месяца по реальным результатам.','Вместе пересмотреть олимпиады, IELTS, поступление и нагрузку. Удалить устаревшие задачи; добавить только подтверждённые ближайшие шаги.','Обновлённый план января–марта.','https://olymp.spbu.ru/']
-  ];
-  seed.forEach((x,i)=>s.tasks.push({id:'plan2-'+i,date:x[0],text:x[1],type:x[2],minutes:x[3],done:false,plan:true,goal:x[4],steps:x[5],result:x[6],resource:x[7]}));
-  saveState(s);planner.planVersion=2;planner.seeded=true;savePlanner();
+function fullBackupPayload(){const local={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('viaClassica')&&k!=='viaClassicaFullBackup_preimport')local[k]=localStorage.getItem(k)}return {format:'via-classica-full-backup-v1',appVersion:14,createdAt:new Date().toISOString(),localStorage:local,sessionStorage:{viaClassicaReturnTask:sessionStorage.getItem('viaClassicaReturnTask')}}}
+function downloadJson(filename,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function backupStatus(message,ok=true){const el=document.getElementById('fullBackupStatus');if(el){el.textContent=message;el.className='schedule-status '+(ok?'ok':'bad')}}
+function plannerSchedulePayload(){const s=getState();return {format:'via-classica-planner-schedule-v1',appVersion:14,createdAt:new Date().toISOString(),tasks:s.tasks.map(t=>({...t})),planner:{recurring:planner.recurring.map(x=>({...x})),modes:{...planner.modes},frozen:{...planner.frozen},actuals:JSON.parse(JSON.stringify(planner.actuals||{})),context:{...planner.context},school:planner.school?{...planner.school}:null,weekNote:planner.weekNote||''}}}
+function scheduleStatus(message,ok=true){const el=document.getElementById('plannerScheduleStatus');if(el){el.textContent=message;el.className='schedule-status '+(ok?'ok':'bad')}}
+function exportPlannerSchedule(){downloadJson('via-classica-planner-schedule-'+today()+'.json',plannerSchedulePayload());scheduleStatus('Расписание скачано. При импорте записи будут объединены, текущие задачи не удаляются.',true)}
+async function importPlannerScheduleFile(file){let raw;try{raw=JSON.parse(await file.text())}catch(_){throw new Error('Файл расписания не является корректным JSON.')};const modern=raw&&raw.format==='via-classica-planner-schedule-v1'&&raw.planner&&typeof raw.planner==='object';const legacy=raw&&raw.format==='via-classica-schedule-v1'&&Array.isArray(raw.tasks);if(!modern&&!legacy)throw new Error('Неизвестный формат. Нужен экспорт расписания Via Classica v14 или файл расписания v13.25/v13.29.');const incomingTasks=Array.isArray(raw.tasks)?raw.tasks:[];const clean=[];const ids=new Set();incomingTasks.forEach((t,i)=>{if(!t||typeof t!=='object'||!String(t.text||'').trim()||!validDate(t.date))throw new Error('Задача №'+(i+1)+': нет названия или неверная дата.');const id=String(t.id||('imported-'+Date.now()+'-'+i));if(ids.has(id))throw new Error('В файле повторяется ID '+id+'.');ids.add(id);const type=['move','soft','hard','fixed'].includes(t.type)?t.type:'move';clean.push({...t,id,text:String(t.text).trim(),date:String(t.date),type,fixed:type==='fixed'||t.fixed===true,plan:false,minutes:Math.max(5,Math.min(600,Number(t.minutes)||45)),done:!!t.done})});const oldState=getState(),oldPlanner=JSON.parse(JSON.stringify(planner));const snapshot={format:'via-classica-planner-schedule-safety-v1',at:new Date().toISOString(),state:oldState,planner:oldPlanner};try{localStorage.setItem('viaClassicaPlannerSchedule_preimport',JSON.stringify(snapshot))}catch(e){downloadJson('via-classica-before-schedule-import.json',plannerSchedulePayload());throw new Error('Не удалось сохранить страховочную копию в хранилище. Расписание до импорта скачано; освободи место и повтори.')};if(!confirm('Импорт объединит задачи и настройки из файла с текущим расписанием. Существующие задачи не удаляются. Продолжить?'))return;const nextState=getState();const byId=new Map(nextState.tasks.map(t=>[String(t.id),t]));clean.forEach(t=>byId.set(t.id,t));nextState.tasks=[...byId.values()];const src=modern?raw.planner:{};if(modern){const rec=Array.isArray(src.recurring)?src.recurring:[];rec.forEach(x=>{if(!x||!String(x.title||'').trim()||!Number.isInteger(Number(x.dayIndex))||Number(x.dayIndex)<0||Number(x.dayIndex)>6)return;const idx=planner.recurring.findIndex(y=>y.id===x.id||(String(y.title||'').trim().toLowerCase()===String(x.title).trim().toLowerCase()&&Number(y.dayIndex)===Number(x.dayIndex)));if(idx<0)planner.recurring.push({...x});else planner.recurring[idx]={...planner.recurring[idx],...x}});planner.modes=Object.assign({},planner.modes,src.modes||{});Object.keys(planner.modes).forEach(d=>{if(planner.modes[d]==='vacation')planner.modes[d]='heavy';else if(planner.modes[d]==='festival')planner.modes[d]='light';else if(!['light','normal','heavy','rest'].includes(planner.modes[d]))delete planner.modes[d]});planner.frozen=Object.assign({},planner.frozen,src.frozen||{});const oldActual=planner.actuals||{},newActual=src.actuals||{};planner.actuals={};new Set([...Object.keys(oldActual),...Object.keys(newActual)]).forEach(d=>planner.actuals[d]=Object.assign({},oldActual[d]||{},newActual[d]||{}));planner.context=Object.assign({},planner.context,src.context||{});if(src.school)planner.school=Object.assign({},planner.school||{},src.school);if(src.weekNote)planner.weekNote=src.weekNote}
+ if(!saveState(nextState)||!savePlanner()){planner=oldPlanner;try{localStorage.setItem(STATE_KEY,JSON.stringify(oldState));localStorage.setItem(PKEY,JSON.stringify(oldPlanner))}catch(_){}throw new Error('Не удалось записать импортированное расписание. Прежние данные восстановлены, если хранилище разрешило запись.')};replan();render();scheduleStatus('Расписание импортировано и объединено с текущими задачами.',true)}
+async function importFullBackupFile(file){
+ let payload;try{payload=JSON.parse(await file.text())}catch(_){throw new Error('Файл не является корректным JSON.')}
+ if(!payload||payload.format!=='via-classica-full-backup-v1'||!payload.localStorage||typeof payload.localStorage!=='object'||Array.isArray(payload.localStorage))throw new Error('Это не полная резервная копия Via Classica v1.')
+ const incoming=payload.localStorage;
+ for(const [k,v] of Object.entries(incoming)){if(!k.startsWith('viaClassica')||k==='viaClassicaFullBackup_preimport'||typeof v!=='string')throw new Error('В копии есть недопустимая запись; данные не изменены.')}
+ const current=fullBackupPayload();
+ try{localStorage.setItem('viaClassicaFullBackup_preimport',JSON.stringify(current))}catch(e){downloadJson('via-classica-before-restore.json',current);throw new Error('Не удалось сохранить локальную страховочную копию в хранилище. Текущая копия скачана; освободи место и повтори восстановление.')}
+ if(!confirm('Восстановление заменит данные Via Classica в этом браузере. Текущие данные сохранены в отдельную страховочную запись. Продолжить?'))return;
+ const appKeys=()=>{const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('viaClassica')&&k!=='viaClassicaFullBackup_preimport')out.push(k)}return out};
+ try{
+   appKeys().forEach(k=>localStorage.removeItem(k));
+   for(const [k,v] of Object.entries(incoming))localStorage.setItem(k,v);
+   const ret=payload.sessionStorage&&payload.sessionStorage.viaClassicaReturnTask;
+   if(ret==null)sessionStorage.removeItem('viaClassicaReturnTask');else sessionStorage.setItem('viaClassicaReturnTask',String(ret));
+   backupStatus('Копия восстановлена. Страница перезагрузится, чтобы применить все данные.',true);setTimeout(()=>location.reload(),350);
+ }catch(e){
+   // Roll back to the pre-import snapshot if a write fails partway through.
+   try{localStorage.removeItem('viaClassicaFullBackup_preimport');appKeys().forEach(k=>localStorage.removeItem(k));for(const [k,v] of Object.entries(current.localStorage))localStorage.setItem(k,v);try{localStorage.setItem('viaClassicaFullBackup_preimport',JSON.stringify(current))}catch(_){downloadJson('via-classica-before-restore.json',current)}}catch(rollbackError){downloadJson('via-classica-before-restore.json',current);backupStatus('Не удалось завершить восстановление. Скачана копия данных до импорта; проверь её перед дальнейшими действиями.',false);throw rollbackError}
+   backupStatus('Импорт не удался; прежние данные восстановлены из страховочной копии.',false);throw e;
  }
-};
-function spend(s,d){return s.tasks.filter(t=>t.date===d&&!isDone(t)&&t.countsTowardCapacity!==false).reduce((a,t)=>a+(Number(t.minutes)||45),0)}
-function nextOpenDate(from,minutes=45,limit=90){const safe=Number.isFinite(Number(minutes))?Math.max(5,Number(minutes)):45;for(let i=1;i<=limit;i++){const nd=add(from,i);if(planner.frozen[nd])continue;if(spend(getState(),nd)+safe<=capacity(nd))return nd}for(let i=1;i<=limit;i++){const nd=add(from,i);if(!planner.frozen[nd])return nd}return add(from,1)}
-function replan(){
- let s=getState(),d=today(), moved=0;
- s.tasks.filter(t=>!isDone(t)&&t.type!=='hard'&&t.date<d).sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
-  for(let i=0;i<21;i++){let nd=add(d,i);if(planner.frozen[nd])continue;if(spend(s,nd)+(Number(t.minutes)||45)<=capacity(nd)){t.date=nd;t.replanned=true;moved++;break}}
- });
- saveState(s); return moved;
 }
-function render(){
- ensureSeed(); const s=getState(),d=today(),mode=planner.modes[d]||'normal';
- const modeEl=document.getElementById('dayMode'); if(modeEl)modeEl.value=mode;
- const cap=capacity(d), used=spend(s,d); const sum=document.getElementById('todaySummary');
- if(sum)sum.innerHTML='<span>'+used+' / '+cap+' мин</span><i><em style="width:'+Math.min(100,Math.round(used/cap*100))+'%"></em></i><small>'+Math.max(0,cap-used)+' мин свободно</small>';
- const td=document.getElementById('todayDate'); if(td)td.textContent=dt(d).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
- const mt=document.getElementById('monthTitle'); if(mt)mt.textContent=dt(d).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
- const mn=document.getElementById('monthNumber'); if(mn)mn.textContent=String(dt(d).getMonth()+1).padStart(2,'0');
- const badge=document.querySelector('.today-badge'); if(badge)badge.textContent=planner.frozen[d]?'заморожен':modeName[mode];
- const events=document.getElementById('monthEvents'); if(events){const key=d.slice(0,7),fallback={
-  '2026-09':[['21.09','«Высшая проба» · дедлайн регистрации (14:00 МСК)']],
-  '2026-10':[['11.10','«Высшая проба» · окончание окна 1 тура'],['31.10','Ревизия плана на ноябрь']],
-  '2026-11':[['30.11','Ревизия плана на декабрь']], '2026-12':[['31.12','Квартальный пересмотр плана']]};
-  const imported=Array.isArray(planner.scheduleEvents)?planner.scheduleEvents.filter(e=>e&&String(e.date||'').slice(0,7)===key):[];
-  const importedList=imported.map(e=>[String(e.time||e.date||'').slice(0,10),String(e.title||e.text||'Событие')]);
-  const list=[...(fallback[key]||[]),...importedList].sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'ru'));
-  events.innerHTML=list.map(e=>'<div class="month-event"><time>'+esc(e[0])+'</time><span>'+esc(e[1])+'</span></div>').join('')||'<div class="empty">Для этого месяца пока нет зафиксированных событий.</div>';
- }
- const box=document.getElementById('alerts');if(box){box.innerHTML='';if(planner.frozen[d])box.innerHTML='<div class="alert ok">💤 Сегодня заморожен. План не создаёт долга.</div>';let overdue=s.tasks.filter(t=>!isDone(t)&&t.type==='hard'&&t.date<d);if(overdue.length)box.innerHTML+='<div class="alert warn">⚠️ Жёстких задач с прошедшим сроком: '+overdue.length+'. Они не переносятся автоматически.</div>'}
- // Override existing task renderer by updating DOM directly.
- const list=document.getElementById('todayTasks'); if(list){let ts=s.tasks.filter(t=>t.date===d&&!isDone(t));list.innerHTML='';if(planner.frozen[d]){list.innerHTML='<div class="empty">День заморожен. Можно отдыхать без долга.</div>'}else if(!ts.length){list.innerHTML='<div class="empty">На сегодня нет незакрытых задач.</div>'}else ts.forEach(t=>{const r=document.createElement('div');r.className='task-item';r.innerHTML='<button class="task-check">○</button><span class="task-main"><b>'+esc(t.text)+'</b><small>'+t.minutes+' мин · '+(t.type==='hard'?'🔴 жёсткая':t.type==='soft'?'🟢 фоновая':'🟡 переносимая')+(t.replanned?' · перенесено':'')+'</small></span><button class="task-detail">подробнее</button><button class="task-more">⋯</button>';r.querySelector('.task-check').onclick=()=>{t.done=true;saveState(s);render()};r.querySelector('.task-detail').onclick=()=>{let msg=(t.goal?'ЦЕЛЬ\n'+t.goal+'\n\n':'')+(t.steps?'ЧТО ДЕЛАТЬ\n'+t.steps+'\n\n':'')+(t.result?'РЕЗУЛЬТАТ\n'+t.result:'');if(t.resource)msg+='\n\nОФИЦИАЛЬНЫЙ МАТЕРИАЛ\n'+t.resource;alert(msg||'Для этой задачи подробная инструкция пока не задана.');};r.querySelector('.task-more').onclick=()=>{const a=prompt('done = выполнено\n25 / 50 / 75 = частично\nskip = перенести\ndelete = удалить','done');if(a==='done')t.done=true;else if(['25','50','75'].includes(a)){let left=Math.max(15,Math.round(t.minutes*(1-Number(a)/100)/15)*15);t.minutes=left;t.date=nextOpenDate(d,left)}else if(a==='skip'&&t.type!=='hard'){t.date=nextOpenDate(d,Number(t.minutes)||45)}else if(a==='delete'){s.tasks=s.tasks.filter(x=>x.id!==t.id)}saveState(s);render()};list.appendChild(r)})}
-}
-function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-ensureSeed(); initScheduleImport(); replan(); if(planner.scheduleTitle)setScheduleStatus('Активно расписание: '+planner.scheduleTitle+' · обновлено '+new Date(planner.scheduleUpdatedAt||Date.now()).toLocaleString('ru-RU'),true);
-document.getElementById('dayMode')?.addEventListener('change',e=>{planner.modes[today()]=['normal','light','heavy','vacation','festival'].includes(e.target.value)?e.target.value:'normal';savePlanner();render()});
-document.getElementById('freezeDay')?.addEventListener('click',()=>{const d=today();planner.frozen[d]=!planner.frozen[d];savePlanner();render()});
-document.getElementById('freezePeriod')?.addEventListener('click',()=>{const start=prompt('Дата начала (ГГГГ-ММ-ДД):',today());if(!start)return;if(!validDate(start)){alert('Неверная дата начала. Используй формат ГГГГ-ММ-ДД.');return}const end=prompt('Дата окончания (ГГГГ-ММ-ДД):',start);if(!end)return;if(!validDate(end)||end<start){alert('Неверная дата окончания.');return}const requestedDays=Math.floor((dt(end)-dt(start))/86400000)+1;if(requestedDays>90){alert('Период слишком длинный. Максимум — 90 дней.');return}let d=start,n=0;while(d<=end){planner.frozen[d]=true;d=add(d,1);n++}savePlanner();alert('Заморожено дней: '+n+'.');render()});
-document.getElementById('replanBtn')?.addEventListener('click',()=>{const n=replan();alert(n?'Перераспределено задач: '+n+'.':'Переносимых просроченных задач нет.');render()});
-// The planner owns task creation so it can preserve plan metadata and storage state.
-document.getElementById('taskForm')?.addEventListener('submit',e=>{e.preventDefault();const s=getState(),text=document.getElementById('taskInput')?.value.trim();if(!text)return;const rawType=document.getElementById('taskType')?.value||'move';const rawMinutes=Number(document.getElementById('taskMinutes')?.value)||45;const minutes=Math.max(15,Math.min(600,rawMinutes));s.tasks.push({id:'u'+Date.now(),text,date:today(),type:['move','soft','hard'].includes(rawType)?rawType:'move',minutes,done:false,plan:false});saveState(s);const input=document.getElementById('taskInput');if(input)input.value='';render()});
-render();
+function init(){migrate();document.getElementById('exportFullBackup')?.addEventListener('click',()=>{try{downloadJson('via-classica-full-backup-'+today()+'.json',fullBackupPayload());backupStatus('Полная резервная копия подготовлена.',true)}catch(e){backupStatus('Не удалось создать копию: '+e.message,false)}});const backupFile=document.getElementById('importFullBackupFile');document.getElementById('chooseFullBackup')?.addEventListener('click',()=>backupFile?.click());backupFile?.addEventListener('change',async()=>{const file=backupFile.files?.[0];if(!file)return;try{await importFullBackupFile(file)}catch(e){backupStatus(e.message,false)}finally{backupFile.value=''}});document.getElementById('exportPlannerSchedule')?.addEventListener('click',exportPlannerSchedule);const plannerFile=document.getElementById('importPlannerScheduleFile');document.getElementById('choosePlannerSchedule')?.addEventListener('click',()=>plannerFile?.click());plannerFile?.addEventListener('change',async()=>{const file=plannerFile.files?.[0];if(!file)return;try{await importPlannerScheduleFile(file)}catch(e){scheduleStatus(e.message,false)}finally{plannerFile.value=''}});document.getElementById('dayMode')?.addEventListener('change',e=>{planner.modes[today()]=['light','normal','heavy','rest'].includes(e.target.value)?e.target.value:'normal';savePlanner();replan();render()});document.getElementById('freezeDay')?.addEventListener('click',()=>{planner.frozen[today()]=!planner.frozen[today()];savePlanner();replan();render()});document.getElementById('replanBtn')?.addEventListener('click',()=>{const n=replan();alert(n?`Перераспределено задач: ${n}.`:'Перераспределение не потребовалось.');render()});document.getElementById('taskForm')?.addEventListener('submit',e=>{e.preventDefault();const text=document.getElementById('taskInput')?.value.trim();if(!text)return;const mins=Number(document.getElementById('taskMinutes')?.value)||45;const type=document.getElementById('taskType')?.value||'move';addUserTask(text,mins,type);document.getElementById('taskInput').value='';render()});document.getElementById('plannerChatForm')?.addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('plannerChatInput');const raw=input?.value.trim();if(!raw)return;addChat('user',raw);const reply=chatReply(raw);addChat('assistant',reply);input.value='';renderChat();render()});document.getElementById('plannerChatClear')?.addEventListener('click',()=>{planner.chat=[];savePlanner();renderChat()});document.getElementById('openPlannerChat')?.addEventListener('click',()=>{document.getElementById('plannerChat')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('plannerChatInput')?.focus()});render()}
+init();
 })();
