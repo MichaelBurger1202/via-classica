@@ -10,13 +10,13 @@ state.links=Array.isArray(state.links)?state.links.filter(l=>l&&typeof l==='obje
 // De-duplicate legacy IDs so delete/edit operations cannot target multiple records.
 {const seen=new Set();state.tasks.forEach(t=>{if(seen.has(t.id))t.id=t.id+'-'+Math.random().toString(36).slice(2,7);seen.add(t.id)});const seenLinks=new Set();state.links.forEach(l=>{if(seenLinks.has(l.id))l.id=l.id+'-'+Math.random().toString(36).slice(2,7);seenLinks.add(l.id)})}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок',english:'Английский'};
+const titles={home:'Сегодня и этот месяц',olympiads:'Олимпиады',ielts:'IELTS',fullplan:'Полный план до поступления',grade11:'План до конца 11 класса',links:'Архив ссылок',english:'Английский',data:'Данные и резервная копия'};
 function save(){let cur={};try{cur=JSON.parse(readStorage(STORAGE,'{}')||'{}')||{};}catch(e){cur={};}if(!cur||typeof cur!=='object'||Array.isArray(cur))cur={};cur.checks=state.checks;cur.links=state.links;/* planner.js owns tasks; never overwrite its newer task state with this page's boot-time snapshot */try{localStorage.setItem(STORAGE,JSON.stringify(cur));}catch(e){try{localStorage.setItem(STORAGE+'_storage_error_backup',JSON.stringify({at:new Date().toISOString(),state:cur}))}catch(_){}}updateProgress()}
 function bindChecks(){
   $$('input[data-id]').forEach(x=>{x.checked=!!state.checks[x.dataset.id];x.addEventListener('change',()=>{state.checks[x.dataset.id]=x.checked;save()})})
 }
 function updateProgress(){const all=$$('input[data-id]');const done=all.filter(x=>x.checked).length;const p=all.length?Math.round(done/all.length*100):0;const pct=$('#pct'),bar=$('#bar');if(pct)pct.textContent=p+'%';if(bar)bar.style.width=p+'%'}
-function show(page){const wasActive=$('#'+page)?.classList.contains('active');$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();if(!wasActive){try{window.scrollTo({top:0,behavior:'smooth'})}catch(_){}} if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
+function show(page){const wasActive=$('#'+page)?.classList.contains('active');document.body.classList.toggle('data-page-active',page==='data');$$('.main-nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===page));$('#title').textContent=titles[page];closeDrawer();if(!wasActive){try{window.scrollTo({top:0,behavior:'smooth'})}catch(_){}} if(page==='english' && typeof window.initEnglish==='function') window.initEnglish();}
 window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 $$('[data-add-task]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show('home');const form=$('#taskForm'),input=$('#taskInput');if(form){form.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input?.focus(),250)}}));
@@ -72,7 +72,7 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=14').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=14.2').catch(() => {});
   });
 }
 

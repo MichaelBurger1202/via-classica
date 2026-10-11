@@ -16,7 +16,7 @@
 <div class="note"><b>Важно:</b> открой эту страницу на том же домене, где сейчас работает Via Classica. Файл создаётся прямо в браузере и никуда не отправляется.</div>
 <button id="backup" type="button">Скачать резервную копию JSON</button>
 <div class="status" id="status" role="status" aria-live="polite"></div>
-<p class="fine">Сохрани файл в надёжное место и не редактируй его вручную. После обновления его можно будет загрузить через раздел «Резервная копия» в Via Classica v14.1.</p>
+<p class="fine">Сохрани файл в надёжное место и не редактируй его вручную. После обновления открой в Via Classica раздел «Данные и резервная копия» и перетащи JSON-файл в область загрузки либо выбери его кнопкой.</p>
 </main>
 <script>
 (function(){
@@ -33,7 +33,7 @@
       const url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download='via-classica-pre-update-backup-'+new Date().toISOString().slice(0,10)+'.json';
       document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
-      status.textContent='Копия подготовлена. Проверь, что файл появился в загрузках.';
+      status.textContent='Копия подготовлена: '+Object.keys(local).length+' записей. Проверь папку «Загрузки» и сохрани JSON вне репозитория.';
       status.style.color='var(--accent)';
     }catch(e){status.textContent='Не удалось создать копию: '+String(e&&e.message||e);status.style.color='#a23b32';}
   });
