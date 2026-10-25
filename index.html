@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Via Classica — 2026–2029</title>
-<link rel="stylesheet" href="styles.css?v=14.2">
-<link rel="manifest" href="manifest.webmanifest?v=14.2">
+<link rel="stylesheet" href="styles.css?v=14.3">
+<link rel="manifest" href="manifest.webmanifest?v=14.3">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
@@ -17,7 +17,7 @@
   <header class="topbar">
     <a class="brand" href="#" data-page="home"><span class="brand-mark">☼</span><span><b>VIA CLASSICA</b><small>ad Italiam · 2029</small></span></a>
     <div class="top-progress"><span id="pct">0%</span><i><em id="bar"></em></i></div>
-    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню">☰</button>
+    <button class="menu-btn" id="menuBtn" aria-label="Открыть меню" aria-controls="drawer" aria-expanded="false">☰</button>
   </header>
 
   <aside class="drawer" id="drawer">
@@ -80,7 +80,7 @@
     <section id="olympiads" class="page"><div class="section-hero"><div><small>01 · ОЛИМПИАДЫ</small><h2>Строим запас возможностей</h2><p>Ядро — филология; литература — стратегический второй слой. Отметки сохраняются на устройстве.</p></div><div class="roman">I · II · III</div></div>
       <div class="cards-grid olympiad-grid">
         <article class="info-card"><div class="card-top"><b>I</b><span>★★★★★</span></div><h3>СПбГУ · Филология</h3><p>Главная цель. Отборочный этап — осень, финал — зима.</p><label><input data-id="o1" type="checkbox"> Регистрация / отборочный этап</label><a href="https://olymp.spbu.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
-        <article class="info-card"><div class="card-top"><b>II</b><span>★★★★★</span></div><h3>«Высшая проба» · Филология</h3><p>Регистрация до 21.09.2026. Первый тур проходит в окне 25.09–11.10.2026; конкретное время зависит от официального расписания профиля.</p><label><input data-id="o2" type="checkbox"> Отборочный этап</label><a href="https://olymp.hse.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
+        <article class="info-card"><div class="card-top"><b>II</b><span>★★★★★</span></div><h3>«Высшая проба» · Филология</h3><p>Окно первого тура — 25.09–11.10.2026 — завершилось. Проверь статус участия и публикацию результатов в личном кабинете; даты следующих этапов сверяй только с официальным расписанием профиля.</p><label><input data-id="o2" type="checkbox"> Отборочный этап</label><a href="https://olymp.hse.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
         <article class="info-card"><div class="card-top"><b>III</b><span>★★★★</span></div><h3>«Ломоносов» · Литература</h3><p>Дополнительная попытка без отдельного тяжёлого трека подготовки.</p><label><input data-id="o3" type="checkbox"> Регистрация</label><a href="https://olymp.msu.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
         <article class="info-card"><div class="card-top"><b>IV</b><span>★★★★</span></div><h3>«Покори Воробьёвы горы!»</h3><p>Ещё один шанс по литературе; держим в календаре.</p><label><input data-id="o4" type="checkbox"> Регистрация</label></article>
         <article class="info-card"><div class="card-top"><b>V</b><span>★★★★★</span></div><h3>ВСОШ · Литература / Русский</h3><p>Стратегически важный трек. Если проходишь этап — идём дальше.</p><label><input data-id="o5" type="checkbox"> Школьный этап</label><a href="https://vserosolimp.edsoo.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
@@ -118,7 +118,7 @@
 
     <section id="data" class="page"><div class="section-hero"><div><small>ДАННЫЕ · БЕЗОПАСНОСТЬ</small><h2>Резервная копия и перенос данных</h2><p>Сохрани полную копию перед обновлением или перенеси свои данные в другой браузер. Файл остаётся у тебя и не отправляется на сервер.</p></div><div class="roman">↗</div></div>
       <div class="backup-panel panel"><div><small class="eyebrow">ПОЛНАЯ КОПИЯ</small><h3>Сохранить или восстановить Via Classica</h3><p>В копию входят задачи и отметки, архив ссылок, настройки планера, профиль английского, словарь и история тренировок. Перед восстановлением приложение сначала сохраняет текущие данные, а затем просит подтверждение.</p></div><div class="backup-actions"><button class="primary" id="exportFullBackup" type="button">Скачать полную копию (.json)</button><input id="importFullBackupFile" type="file" accept=".json,application/json" hidden><button class="ghost-dark" id="chooseFullBackup" type="button">Выбрать файл для восстановления</button></div>
-        <div id="backupDropZone" class="backup-dropzone" tabindex="0" role="button" aria-label="Перетащить резервную копию сюда или выбрать файл"><span class="backup-drop-icon">↓</span><div><b>Загрузи резервную копию сюда</b><p>Перетащи JSON-файл в эту область или нажми «Выбрать файл для восстановления».</p><small>Поддерживается полная копия Via Classica v14.2 и совместимые копии v14.1 / pre-v14.</small></div></div>
+        <div id="backupDropZone" class="backup-dropzone" tabindex="0" role="button" aria-label="Перетащить резервную копию сюда или выбрать файл"><span class="backup-drop-icon">↓</span><div><b>Загрузи резервную копию сюда</b><p>Перетащи JSON-файл в эту область или нажми «Выбрать файл для восстановления».</p><small>Поддерживается полная копия Via Classica v14.3 и совместимые копии v14.1 / pre-v14.</small></div></div>
         <div id="fullBackupStatus" class="schedule-status" aria-live="polite"></div>
       </div>
       <div class="backup-panel panel"><div><small class="eyebrow">ТОЛЬКО РАСПИСАНИЕ</small><h3>Перенести планер отдельно</h3><p>Используй этот вариант, если нужно перенести только задачи и расписание. Это не полная резервная копия приложения.</p></div><div class="backup-actions"><button class="ghost-dark" id="exportPlannerSchedule" type="button">Скачать расписание</button><input id="importPlannerScheduleFile" type="file" accept=".json,application/json" hidden><button class="ghost-dark" id="choosePlannerSchedule" type="button">Импортировать расписание</button></div><div id="plannerScheduleStatus" class="schedule-status" aria-live="polite"></div></div>
@@ -134,6 +134,6 @@
 
 <div class="modal" id="linkModal" aria-hidden="true"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><small>НОВАЯ ССЫЛКА</small><h2>Добавить в архив</h2><form id="linkForm"><label>Название<input id="linkName" required placeholder="Например, Sapienza — Classics"></label><label>Ссылка<input id="linkUrl" type="url" required placeholder="https://…"></label><label>Категория<select id="linkCategory"><option>Вузы</option><option>Олимпиады</option><option>IELTS</option><option>Подготовка</option><option>Документы</option><option>Италия</option><option>Мои ссылки</option></select></label><label class="checkline"><input id="linkFav" type="checkbox"> Добавить в избранное</label><div class="modal-actions"><button type="button" class="ghost" id="cancelLink">Отмена</button><button class="primary" type="submit">Сохранить</button></div></form></div></div>
 
-<script src="app.js?v=14.2"></script><script src="planner.js?v=14.2"></script><script src="english.js?v=14.2"></script>
+<script src="app.js?v=14.3"></script><script src="planner.js?v=14.3"></script><script src="english.js?v=14.3"></script>
 </body>
 </html>

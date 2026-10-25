@@ -1,0 +1,17 @@
+Via Classica v14.3 — final checks (2026-10-25)
+
+PASS — node --check for app.js, planner.js, planner-inline.js, english.js, sw.js (5/5).
+PASS — HTML parser: 60 unique static IDs; no duplicates; all 7 local asset references resolve.
+PASS — all JSON files and manifest.webmanifest parse.
+PASS — English source bank: 1,342/1,342 unique non-empty IDs; FIPI ingestion: 49/49 unique IDs.
+PASS — CSS brace balance: 593/593; all 11 Service Worker asset references resolve; no stale v14.2 asset query parameters.
+PASS — local HTTP smoke test 14/14.
+PASS — Chromium CDP DOM E2E: 32/32 and 27/27; migration/idempotency 7/7; isolated Service Worker logic 6/6 (72/72 total). No uncaught browser JS errors recorded.
+PASS — responsive measurements at 1280, 768, 390 and 320 CSS px found no horizontal overflow.
+PASS — migration seeds the six expected recurring lessons and preserves existing records without duplicating them.
+PASS — simulated localStorage write failure during backup restore rolled back to the previous app data and displayed a clear recovery message.
+PASS — expired 2026 HSE registration text is no longer presented as an upcoming deadline.
+
+Known environment limitation: the browser could not navigate directly to the local HTTP URL due to an environment policy. The real app HTML/CSS/JS was instead loaded into Chromium using CDP Page.setDocumentContent with isolated in-memory storage mocks. These tests cover DOM/event logic but do not verify real-origin localStorage, native Service Worker installation/cache lifecycle, offline behavior, hosting, or the user's personal profile. Those items must be checked after controlled installation.
+
+Ready for controlled installation with a backup first; not an automatic production publish. See TEST-REPORT-v14.3-repetitio.txt and DEPLOY-v14.3.txt.

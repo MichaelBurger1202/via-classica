@@ -1,16 +1,16 @@
-const CACHE = 'via-classica-v14.2';
+const CACHE = 'via-classica-v14.3';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=14.2',
-  './app.js?v=14.2',
-  './planner.js?v=14.2',
-  './english.js?v=14.2',
-  './manifest.webmanifest?v=14.2',
+  './styles.css?v=14.3',
+  './app.js?v=14.3',
+  './planner.js?v=14.3',
+  './english.js?v=14.3',
+  './manifest.webmanifest?v=14.3',
   './icon-192.png',
   './icon-512.png',
-  './via-classica-schedule-current.json?v=14.2',
-  './sw.js?v=14.2'
+  './via-classica-schedule-current.json?v=14.3',
+  './sw.js?v=14.3'
 ];
 
 self.addEventListener('install', event => {
@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('via-classica-') && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

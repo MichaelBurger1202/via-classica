@@ -1,0 +1,23 @@
+Via Classica v14.3 — controlled installation checklist
+Revision: 2026-10-25
+
+BEFORE INSTALLATION
+1. Open the currently used Via Classica in the browser where your data lives.
+2. Export a full Via Classica backup (.json) and confirm it exists in Downloads. Keep this file private; do not commit it to a public repository.
+3. Keep a complete copy of the previous site files/deployment so it can be restored.
+4. Unzip this archive. The project root is `vc_design_review/`; upload the contents of that directory to the intended same-origin site, or first use a staging path if one is available. Avoid switching origin if you need existing browser storage to carry forward.
+
+AFTER INSTALLATION — CHECK ON THE REAL SITE
+5. Open/refresh the app. Confirm old tasks, checkbox progress, links, planner settings, English profile, dictionary and training history remain present.
+6. Open the planner and check that the six regular sessions appear exactly once: Monday Literature Club 75 min; Wednesday English/IELTS + Speaking 60 min; Thursday EGE Literature 90 min; Saturday Readings 90 min; Saturday Speaking Club 90 min; Sunday English/IELTS + Speaking 60 min.
+7. Test creating/completing one temporary task, changing day mode, and refreshing. Confirm data persists; then delete the temporary task.
+8. Verify browser update/Service Worker status on the real host. Test refresh after the new files are uploaded. Test offline behavior only as a separate controlled check; do not assume it is verified by this QA report.
+9. If anything is missing or broken, preserve the backup and old files, restore the previous deployment, and investigate before proceeding.
+
+WHAT HAS BEEN TESTED BEFORE INSTALLATION
+- 72/72 checks across Chromium DOM flows, migration/idempotency, and isolated Service Worker logic.
+- UI actions include task creation/completion, planner day/freeze state, recurring-session chat changes, link handling, English session/dictionary, schedule import validation and backup restore including simulated storage-write rollback.
+- Responsive layouts at 1280/768/390/320 CSS px showed no horizontal overflow; 14/14 local HTTP requests returned 200.
+
+BOUNDARY
+Browser direct navigation to local HTTP is blocked in this environment, so the UI was exercised via Chromium CDP Page.setDocumentContent using the actual candidate HTML/CSS/JS and isolated in-memory storage mocks. The deployed origin, real user storage/profile, native Service Worker install/update/cache lifecycle, and production hosting were not verified here. These are intentionally reserved for the controlled post-install check. No production deployment was performed by this audit.

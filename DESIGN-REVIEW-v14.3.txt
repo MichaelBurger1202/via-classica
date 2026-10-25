@@ -1,0 +1,26 @@
+Via Classica v14.3 — UI review and QA summary
+Review date: 2026-10-25
+
+UI checks and retained improvements:
+- clearer keyboard focus outlines;
+- mobile spacing/touch targets;
+- drawer scroll behavior;
+- bounded modal height on small screens;
+- reduced-motion support;
+- aria-expanded / aria-controls menu state;
+- current olympiad copy no longer presents an expired 21.09.2026 registration deadline as upcoming.
+
+Functional corrections in the latest candidate:
+- planner redistribution uses current in-memory task state and does not force moves into frozen/rest days when there is no open slot;
+- six recurring sessions seed correctly, including both Saturday 90-minute sessions;
+- migration preserves existing tasks, checkboxes, links, profile, dictionary and legacy custom recurrence without duplicate defaults;
+- backup restoration restores prior data on a simulated storage-write failure and reports that rollback to the user;
+- Service Worker cleanup removes only old Via Classica caches and preserves unrelated origin caches.
+
+Review results:
+- 72/72 checks passed across two Chromium DOM E2E suites, a migration/idempotency suite and isolated Service Worker logic tests;
+- no browser console errors/uncaught JS errors in DOM suites;
+- responsive measurements at 1280/768/390/320 px found no horizontal overflow;
+- static/resource/data checks and 14/14 local HTTP smoke requests passed.
+
+Testing limitation: the app was loaded into Chromium by CDP Page.setDocumentContent because browser navigation to local HTTP is blocked by the environment. The localStorage/sessionStorage used in E2E was isolated mock storage. Therefore the deployed origin, actual user's local storage, native Service Worker lifecycle and true offline behavior still require post-install verification. Do not publish automatically.

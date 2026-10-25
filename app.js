@@ -20,8 +20,8 @@ function show(page){const wasActive=$('#'+page)?.classList.contains('active');do
 window.showViaPage=show;
 $$('[data-page]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.page)}));
 $$('[data-add-task]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show('home');const form=$('#taskForm'),input=$('#taskInput');if(form){form.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>input?.focus(),250)}}));
-function openDrawer(){ $('#drawer').classList.add('open'); $('#overlay').classList.add('show') }
-function closeDrawer(){ $('#drawer').classList.remove('open'); $('#overlay').classList.remove('show') }
+function openDrawer(){ $('#drawer').classList.add('open'); $('#overlay').classList.add('show'); $('#menuBtn')?.setAttribute('aria-expanded','true'); $('#drawer')?.setAttribute('aria-hidden','false') }
+function closeDrawer(){ $('#drawer').classList.remove('open'); $('#overlay').classList.remove('show'); $('#menuBtn')?.setAttribute('aria-expanded','false'); $('#drawer')?.setAttribute('aria-hidden','true') }
 $('#menuBtn')?.addEventListener('click',openDrawer);$('#closeMenu')?.addEventListener('click',closeDrawer);$('#overlay')?.addEventListener('click',closeDrawer);
 function renderTasks(){const box=$('#todayTasks');if(!box)return;box.innerHTML='';if(!Array.isArray(state.tasks)||!state.tasks.length){box.innerHTML='<div class="empty">Пока пусто. Добавь первую задачу на сегодня.</div>';return}state.tasks.forEach((t,i)=>{const row=document.createElement('div');row.className='task-item '+(t.done?'done':'');row.innerHTML=`<input type="checkbox" ${t.done?'checked':''}><span></span><button aria-label="Удалить">×</button>`;row.querySelector('span').textContent=t.text;row.querySelector('input').addEventListener('change',e=>{t.done=e.target.checked;save();renderTasks()});row.querySelector('button').addEventListener('click',()=>{state.tasks.splice(i,1);save();renderTasks()});box.appendChild(row)})}
 // Task form is handled by planner.js
@@ -72,7 +72,7 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=14.2').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=14.3').catch(() => {});
   });
 }
 

@@ -1,0 +1,68 @@
+Via Classica v14.3 — repetitio QA report
+Audit / package revision: 2026-10-25
+Status: ready for controlled user-side installation, with backup and post-install verification required
+
+SUMMARY
+- Two real Chromium DOM-driven E2E suites passed: 32/32 and 27/27 checks.
+- Migration/upgrade suite passed: 7/7 checks, including a second startup to verify idempotency and preservation of synthetic legacy data.
+- Service Worker logic harness passed: 6/6 checks.
+- Total: 72/72 checks passed across the four suites. No uncaught JavaScript exceptions or browser console errors were recorded by the DOM E2E suites.
+- Responsive layout checks at viewport widths 1280, 768, 390, and 320 CSS px reported no horizontal overflow.
+- Static checks, data checks, syntax checks, and local HTTP smoke test passed; see details below.
+
+BUGS FOUND AND FIXED DURING THIS AUDIT
+1. Planner redistribution previously checked capacity against persisted state while mutating a separate in-memory task list. Replanning now uses the current working list consistently.
+2. When no suitable destination was available within the search horizon, tasks could be forced onto the next day, even if it was a frozen/rest day. The planner now safely stops when no open slot exists.
+3. Movable, unfinished tasks already assigned to a frozen/rest day are moved to a suitable later slot when one exists. Hard tasks remain unchanged by automatic movement.
+4. The shipped default recurring schedule was missing both Saturday sessions. It now seeds all six sessions matching the user's saved schedule: Monday Literature Club 75 min; Wednesday English/IELTS + Speaking 60 min; Thursday EGE Literature 90 min; Saturday Readings 90 min; Saturday Speaking Club 90 min; Sunday English/IELTS + Speaking 60 min.
+5. The recurring-session migration is idempotent: sessions are matched by stable IDs or title + weekday, existing IDs stay unchanged, and a synthetic legacy custom session is preserved. First-load and second-load checks confirmed there were no duplicate defaults.
+6. Full-backup restore already attempted to roll back after a storage write error, but the UI catch handler replaced the helpful rollback status with the raw technical exception. The handler now reports that the previous data was restored and retains the underlying error as context. An injected storage-write failure verified that app data before/after remained identical and the recovery snapshot was preserved.
+7. The olympiad card presented the High School of Economics' 21.09.2026 registration deadline as if it were upcoming. Its copy now explicitly marks the 25.09–11.10.2026 first-round window as ended and tells the student to check their account and the official next-stage calendar.
+8. Earlier fixes retained: cache-busting assets consistently reference v14.3; Service Worker activation deletes only older `via-classica-*` caches and does not delete unrelated origin caches.
+
+BROWSER E2E COVERAGE
+The archive's HTML, CSS, app.js, planner.js, and english.js were run in Chromium via the Chrome DevTools Protocol. The environment blocks direct browser navigation to local HTTP URLs, so the app was loaded into an about:blank target with `Page.setDocumentContent`; CSS and JS were inlined from the actual candidate files and localStorage/sessionStorage were replaced by isolated in-memory test doubles. This exercises actual DOM, event listeners, page logic, and UI state transitions, but it is NOT a test of the real deployment origin or the user's browser storage.
+
+32-check suite includes:
+- startup, page sections, navigation/drawer and stale olympiad wording;
+- creation/completion of a task, day mode and freeze state persistence;
+- adding/removing a recurring lesson through planner chat;
+- link modal, create/save, category filtering and preservation of planner tasks;
+- olympiad progress checkbox persistence;
+- opening English adaptive training, topic mode, profile and dictionary;
+- malformed/foreign-key full-backup rejection without mutation;
+- mobile/desktop layout measurements and browser error capture.
+
+27-check suite includes:
+- starting a 10-task English session and answering/checking an item;
+- dictionary capture from task text, de-duplication, manual add/search/delete;
+- training progress and session resumability;
+- schedule import rejects duplicate IDs and invalid calendar dates before mutation;
+- valid schedule import merges without deleting existing user tasks;
+- full backup rejects malformed JSON and foreign keys;
+- injected storage write failure rolls back without data loss and reports it clearly;
+- cancellation leaves user data unchanged; valid restore restores payload and creates pre-restore snapshot;
+- responsive overflow checks at 1280/768/390/320 px.
+
+7-check migration suite includes preserving legacy tasks, checks, links, dictionary/profile, day modes, contextual settings and legacy custom recurring sessions; creating a pre-migration backup; adding the two missing Saturday sessions; and verifying that second startup does not duplicate them.
+
+6-check Service Worker harness checks install precache list and skipWaiting, cleanup of old Via Classica cache while preserving unrelated cache, ignoring non-GET and cross-origin fetches, network-first caching of successful same-origin responses, and cache fallback behavior. This is an isolated API harness, not a native browser Service Worker lifecycle test.
+
+STATIC / DATA / SERVER CHECKS
+- `node --check`: app.js, planner.js, planner-inline.js, english.js, sw.js (5/5 pass).
+- HTML parser: 60 static IDs, all unique; 7 local HTML asset links, all resolve.
+- All project JSON files and manifest.webmanifest parse successfully.
+- English source bank: 1,342 items, 1,342 non-empty unique IDs. FIPI ingestion: 49 items, 49 unique IDs.
+- CSS braces: 593 opening / 593 closing.
+- All 11 Service Worker asset references exist; no stale v14.2 cache-busting references remain in index.html/app.js/sw.js.
+- Local HTTP smoke test: 14/14 URLs return 200, including HTML, styles, JS, manifest, icons, schedule and data files.
+- New archive ZIP integrity and SHA-256 checks verified after final packaging.
+
+POST-INSTALL CHECKS STILL REQUIRED
+These cannot be truthfully completed from this environment:
+- opening the deployed copy on its real same-origin URL and confirming the actual browser localStorage/sessionStorage remains intact;
+- real PWA Service Worker registration, cache activation, update propagation, offline fallback and install prompt behavior on the target host/browser;
+- a controlled check against the user's real backup/profile. No personal data was accessed or modified during QA.
+
+INSTALLATION SAFETY
+This build is ready for a controlled installation/test. Before replacing an existing deployment, export a full Via Classica backup in the currently used browser, keep the old site files, and retain the backup locally. After installing on the same origin, verify existing tasks, checkboxes, links, English profile and dictionary; confirm all six regular sessions appear exactly once; then test refresh and Service Worker update behavior. Do not upload the personal backup JSON to a public repository.

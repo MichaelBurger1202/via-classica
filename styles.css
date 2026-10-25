@@ -86,3 +86,44 @@
 
 body.data-page-active .page-header{display:none}body.data-page-active #data .section-hero{padding-top:34px}
 #data .backup-panel{grid-template-columns:minmax(0,1fr)}#data .backup-panel .backup-actions{max-width:none;justify-content:flex-start}
+
+/* v14.3 — visual polish: focus, touch targets, spacing, contrast and mobile overflow */
+:root{--muted:#626a63;--line:#d8cfbf;--shadow:0 12px 34px rgba(51,43,31,.065);--radius:20px;--focus-ring:0 0 0 3px rgba(73,100,90,.24)}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--green2);outline-offset:3px;box-shadow:var(--focus-ring)}
+button,a{-webkit-tap-highlight-color:transparent}
+button{transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease}
+.primary{background:#a96149}.primary:hover{background:#95523e;box-shadow:0 5px 14px rgba(149,82,62,.18)}
+.ghost-dark{transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+.panel,.info-card,.phase,.timeline article,.year-grid article,.links-grid article{box-shadow:0 8px 24px rgba(51,43,31,.045);transition:border-color .16s ease,box-shadow .16s ease}
+.info-card:hover,.phase:hover,.year-grid article:hover,.links-grid article:hover{border-color:#c9bda8;box-shadow:0 12px 28px rgba(51,43,31,.07)}
+.panel-title{gap:14px}.panel-title h3{line-height:1.2}.page-header h1{letter-spacing:-.025em}.section-hero h2{letter-spacing:-.025em}.hero-copy p,.section-hero p,.panel p{line-height:1.65}
+.topbar{padding-left:max(3vw,calc((100vw - 1180px)/2));padding-right:max(3vw,calc((100vw - 1180px)/2))}.drawer{overflow-y:auto;overscroll-behavior:contain}.main-nav button{min-height:46px}.drawer-head button{width:44px;height:44px;border-radius:12px;display:grid;place-items:center}.menu-btn{flex-shrink:0}.overlay{backdrop-filter:blur(2px)}
+input,select,textarea{max-width:100%;accent-color:var(--terra)}
+.add-form input:focus,.add-form select:focus,.modal input:focus,.modal select:focus,.link-toolbar select:focus{border-color:var(--green2)}
+.add-form input,.add-form select,.modal input,.modal select,.link-toolbar select{min-height:44px}
+.task-item input[type=checkbox],.month-list input[type=checkbox],.info-card input[type=checkbox],.phase input[type=checkbox],.timeline input[type=checkbox],.year-grid input[type=checkbox]{width:18px;height:18px;flex:0 0 auto}
+.task-item button,.fav,.link-edit,.link-delete{min-width:36px;min-height:36px;border-radius:10px}.task-item button:hover,.fav:hover,.link-edit:hover,.link-delete:hover{background:#eee7d9;color:var(--green)}
+.text-link{min-height:40px}.hero-actions button,.planner-actions button,.backup-actions button,.modal-actions button{min-height:44px}
+.link-title{line-height:1.3}.link-url{max-width:100%}.links-grid article{overflow-wrap:anywhere}.empty{line-height:1.6}
+.timeline article{margin-left:7px}.timeline article:before{left:-15px}.timeline:before{left:-8px}
+.modal{overflow-y:auto;overscroll-behavior:contain}.modal-card{max-height:min(88vh,800px);overflow-y:auto}.modal-close{width:42px;height:42px;display:grid;place-items:center;border-radius:12px}.modal-close:hover{background:#eee7d9}
+.backup-dropzone{min-height:104px}.backup-dropzone:focus-visible{box-shadow:var(--focus-ring)}
+@media(max-width:800px){
+  .topbar{gap:12px}.brand{gap:8px}.brand-mark{font-size:25px}
+  .hero{border-radius:22px}.hero-copy{padding:30px 24px}.hero-art:after{background:linear-gradient(0deg,rgba(49,72,63,.18),transparent 65%)}
+  .dashboard-grid{gap:14px}.panel{padding:21px}.planner-actions{gap:8px}.planner-actions>*{min-width:0}
+  .section-hero{gap:12px}.section-hero p{margin-bottom:0}
+  .add-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.add-form input:first-child{grid-column:1/-1}.add-form select{min-width:0;width:100%}.add-form input[type=number]{width:100%;min-width:0}.add-form button{min-height:44px}
+  .link-toolbar{gap:8px}.link-toolbar .primary,.link-toolbar select{width:100%;max-width:none;min-height:44px}
+}
+@media(max-width:480px){
+  main{width:calc(100% - 28px)}.topbar{padding-inline:14px;height:64px}.brand b{font-size:10px;letter-spacing:.12em}.brand small{font-size:9px}
+  .page-header{padding-top:24px}.page-header h1{font-size:30px}.hero-copy{padding:26px 20px}.hero-copy h2,.section-hero h2{font-size:32px;line-height:1.08}.hero-actions{gap:8px}.hero-actions button{flex:1;min-width:0}
+  .panel,.info-card,.phase,.timeline article,.year-grid article{padding:17px;border-radius:17px}.panel-title{align-items:flex-start}.panel-title h3{font-size:21px}.today-badge{font-size:10px;white-space:nowrap}
+  .planner-actions{display:grid;grid-template-columns:1fr 1fr}.planner-actions select{grid-column:1/-1}.planner-actions #replanBtn{grid-column:1/-1;text-align:left;margin-top:0}
+  .add-form{grid-template-columns:minmax(0,1fr) 76px}.add-form input:first-child{grid-column:1/-1}.add-form select{grid-column:1/2}.add-form input[type=number]{grid-column:2/3}.add-form button{grid-column:1/-1;width:100%}
+  .focus-strip{margin-top:16px}.focus-strip div{padding:13px 10px}.recurring-day{padding:11px}.recurring-item{align-items:flex-start}.modal{padding:12px}.modal-card{padding:24px 18px;border-radius:18px}.modal-card h2{font-size:28px}.modal-actions{flex-wrap:wrap}.modal-actions button{flex:1}
+  .backup-dropzone{gap:11px}.backup-drop-icon{flex-basis:38px;width:38px;height:38px}.drawer{padding:22px}
+}
+@media(hover:none){.info-card:hover,.phase:hover,.year-grid article:hover,.links-grid article:hover{box-shadow:0 8px 24px rgba(51,43,31,.045)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

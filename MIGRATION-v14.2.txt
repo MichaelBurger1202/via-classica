@@ -23,3 +23,9 @@ MIGRATION / DATA SAFETY — v14.2
 - Для переноса между разными origin сначала экспортируй JSON со старого сайта, затем импортируй на новом.
 - Не публикуй JSON резервной копии в публичном GitHub-репозитории: он может содержать личные задачи и историю обучения.
 - Browser E2E проверка использовала Chromium CDP, Page.setDocumentContent и изолированное mock-хранилище, потому что навигация браузера к localhost заблокирована средой. Это проверяет UI/логику импорта, но не подтверждает работу реального GitHub Pages, service worker в продакшене или офлайн-режима.
+
+ADDENDUM — v14.3 migration verification (2026-10-25)
+- On initialization, v14.3 idempotently adds any missing default recurring sessions while retaining the four previously stable default IDs and any custom recurring lessons.
+- The v14.3 defaults now include Saturday Readings (90 min) and Saturday Speaking Club (90 min), which were absent from the earlier four-session baseline.
+- Synthetic migration testing passed on both first and second startup: legacy V13 tasks/checks/links, planner mode/frozen/context data, English profile/dictionary and custom recurring lessons remained present; all seven recurring entries had unique IDs and no defaults were duplicated.
+- A simulated storage write error during full-backup restore now reports explicitly that the previous data was restored, with the original error included for troubleshooting.
