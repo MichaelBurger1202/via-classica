@@ -1,0 +1,59 @@
+VIA CLASSICA v14.6 — REPETITIO TEST REPORT
+Дата: 2026-10-25
+Статус: предварительные проверки кандидата пройдены; требуется post-deploy acceptance на опубликованном домене.
+
+1. Chromium/CDP interaction tests: 23/23 PASS
+1. Начальная миграция создаёт шесть стандартных регулярных занятий.
+2. Неделя начинается с понедельника.
+3. Удаление кнопкой × сохраняет tombstone и удаляет запись.
+4. Удалённое стандартное занятие не возвращается после повторной загрузки документа.
+5. Экспорт/импорт расписания сохраняет tombstone удаления.
+6. Явное повторное добавление удалённого standard lesson снимает tombstone и не создаёт дубль.
+7. «Сделай английский в среду 75 минут» обновляет существующее IELTS + Speaking; воскресенье остаётся 60 минут; дубль не создаётся.
+8. Добавление занятия через чат сохраняется после повторной загрузки.
+9. Изменение длительности сохраняется.
+10. Повторное добавление не создаёт дубликат.
+11. «Убери английский в среду» удаляет только среду, сохраняет воскресенье и tombstone.
+12. Удаление через чат остаётся удалением после повторной загрузки.
+13. История старого чата v14.4 может восстановить явное намерение удалить стандартное занятие.
+14. Ошибка localStorage при удалении через × откатывает изменение и показывает предупреждение.
+15. Ошибка localStorage при удалении через чат не выдаёт ложного успеха.
+16. Ошибка localStorage при добавлении не выдаёт ложного успеха.
+17. Ошибка localStorage при изменении длительности откатывает изменение и сообщает о невозможности сохранить.
+18. Ошибка localStorage при переносе занятия откатывает изменение.
+19. Ошибка localStorage при записи фактической длительности откатывает изменение и предупреждает пользователя.
+20. Успешная запись фактической длительности переживает перезагрузку.
+21. Некорректный JSON хранилища копируется в *_corrupt_backup, а не молча уничтожается.
+22. Во время проверяемого взаимодействия нет необработанных Runtime exceptions/console errors.
+23. Горизонтального переполнения нет при ширинах 320, 390, 768 и 1280 px.
+
+Изолированное браузерное окружение
+- Использован Chromium через CDP с тестовым localStorage, который можно экспортировать и повторно подать при открытии нового документа.
+- Приложение запускалось с inline-ресурсами в изолированном document: файловые/localhost/data URL navigation блокировались политикой среды. Поэтому это не эквивалентно проверке production-origin и реально установленного Service Worker.
+
+2. Service Worker: 8/8 assertions PASS
+- install caches current assets and invokes skipWaiting;
+- list contains v14.6 asset URLs and index;
+- activation removes old via-classica-* caches and leaves unrelated caches;
+- clients.claim is called;
+- network-first response is cached;
+- offline miss falls back to cached index;
+- POST requests are not intercepted;
+- cross-origin requests are ignored.
+
+3. Static QA PASS
+- `node --check`: 5 JavaScript files passed.
+- Valid JSON: 5 .json files + manifest.webmanifest = 6 parsed successfully.
+- `index.html`: 78 IDs, zero duplicates.
+- All local HTML references exist.
+- All 12 Service Worker asset paths exist.
+- Manifest/version markers and asset cache names consistently use v14.6.
+
+4. HTTP smoke test PASS
+13 local HTTP requests returned 200: `/`, `index.html`, versioned styles/app/planner/english/sw/manifest, the source bank, FIPI navigator/ingestion JSON and both icons.
+
+5. Package checks
+ZIP integrity is checked with unzip -t. Source-file SHA-256 values are listed in SHA256SUMS-v14.6.txt; the ZIP hash is reported with the delivered archive.
+
+Known limitation / remaining acceptance
+No direct access to the user's current published page or local installed PWA. Verify after upload: deleted lesson stays deleted across navigation and reload; the existing Wednesday IELTS task updates instead of creating another English task; Service Worker has activated v14.6; actual user data remains in localStorage. Do not clear site data to force an update.
