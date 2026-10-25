@@ -1,0 +1,19 @@
+Via Classica v14.4 — focused design review
+Date: 2026-10-25
+
+Scope: preserve the existing Via Classica layout while addressing the user's three observations: Sunday-first weekly display, confusing actual-duration wording and a rigid planner chat.
+
+1. Weekly order
+The recurring schedule display uses Monday → Tuesday → Wednesday → Thursday → Friday → Saturday → Sunday. The stored JavaScript weekday convention remains Sunday=0, so this is a presentation-only order change and does not shift stored lessons.
+
+2. Actual duration
+The button is now “Записать факт” before an actual duration is entered and “Факт: N мин” afterward. The tooltip and accessible label explain what is being recorded. This control remains because it is used to update the planner's available-time calculation.
+
+3. Planner chat
+The existing chat and history were retained, not replaced. The heading “Скажи своими словами”, concise bubbles, and example chips make the intended interaction clearer. Chips prefill the composer rather than auto-sending. The parser recognizes ordinary additions, passive schedule statements, multiple weekdays, dates and durations, moves, duration edits, removals, schedule queries, and duration questions. Duplicate entries are upserted; ambiguous matches are not guessed.
+
+4. Explicit boundaries
+Clock start times are currently not persisted because the planner model uses dates and durations. If a message includes a clock time, the answer calls out that limitation instead of silently pretending the time was saved. Dated one-off tasks retain the explicitly requested date and are stored as hard tasks to avoid a silent auto-move.
+
+5. Responsive review
+In isolated Chromium DOM tests, widths of 320, 390, 768 and 1280 CSS pixels showed no horizontal page overflow. This is not a guarantee for every device/browser or deployed-origin behavior; verify after installation.

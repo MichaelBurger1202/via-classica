@@ -1,16 +1,17 @@
-const CACHE = 'via-classica-v14.3';
+const CACHE = 'via-classica-v14.4';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=14.3',
-  './app.js?v=14.3',
-  './planner.js?v=14.3',
-  './english.js?v=14.3',
-  './manifest.webmanifest?v=14.3',
+  './styles.css?v=14.4',
+  './app.js?v=14.4',
+  './planner.js?v=14.4',
+  './planner-inline.js?v=14.4',
+  './english.js?v=14.4',
+  './manifest.webmanifest?v=14.4',
   './icon-192.png',
   './icon-512.png',
-  './via-classica-schedule-current.json?v=14.3',
-  './sw.js?v=14.3'
+  './via-classica-schedule-current.json?v=14.4',
+  './sw.js?v=14.4'
 ];
 
 self.addEventListener('install', event => {

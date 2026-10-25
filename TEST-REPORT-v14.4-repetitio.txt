@@ -1,0 +1,27 @@
+Via Classica v14.4 — repetitio test report
+Date: 2026-10-25
+
+RESULT
+56/56 behavior checks passed; 15/15 HTTP smoke checks passed.
+
+Behavior checks
+- Planner chat logic: 22/22. Includes natural-language additions, multi-day phrases, passive phrases without imperatives, duration variants, one-off dates, clock-time limitation messaging, moving/editing/removing, duplicate avoidance, duration questions and day-filtered schedule queries.
+- Chromium CDP DOM/interaction flow: 23/23. Actual candidate HTML/CSS/JS were loaded into an isolated browser document with mock in-memory storage. Tested Monday-first display, example chips, adding sessions through the chat form, moving/editing/removing through the form, date handling, query answers, actual-duration label, English module initialization and launching a training task, and responsive page width.
+- Data migration: 6/6. Existing task and unrelated state preservation, normalization of legacy generated tasks, preservation of customized recurring entries, creation of a pre-migration backup, idempotent seeding, and recovery after malformed stored planner JSON.
+- Service Worker logic: 5/5. v14.4 precache set, selective cache cleanup, external GET exclusion, non-GET exclusion, same-origin network-first caching.
+
+HTTP smoke checks
+- 15/15 requests returned HTTP 200: app shell; CSS; app/planner/planner-inline/English JS; Service Worker; manifest; icons; current schedule JSON; English source bank; both FIPI JSON resources.
+
+Static/consistency checks
+- node --check passes for all 5 JavaScript files.
+- HTML contains 59 unique IDs; all 7 local HTML asset references resolve.
+- All 5 JSON files parse; manifest version is 14.4.
+- CSS braces balance (618 opening / 618 closing).
+- All 12 Service Worker asset references resolve.
+- English source bank: 1,342 items and 1,342 unique IDs.
+- No stale ?v=14.2 or ?v=14.3 query strings in index.html; current app assets use ?v=14.4.
+- No uncaught runtime exceptions were observed during the isolated CDP interaction run.
+
+LIMITATION
+The managed Chromium runtime blocks direct navigation to localhost and file URLs. The actual candidate page and scripts were exercised through CDP in an isolated in-memory context. This does not prove real-origin storage continuity, native Service Worker update lifecycle, offline behavior or compatibility with a user's specific browser. Those require a controlled post-install check. No production deployment or user data was modified.

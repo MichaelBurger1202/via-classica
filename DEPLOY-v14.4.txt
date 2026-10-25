@@ -1,0 +1,23 @@
+Via Classica v14.4 — controlled installation checklist
+Revision: 2026-10-25
+
+BEFORE INSTALLATION
+1. Open the current Via Classica on the same browser and origin where your data lives.
+2. In “Резервная копия”, download a full Via Classica backup (.json). Confirm it is in Downloads and keep it private.
+3. Keep a complete copy of the previous deployed site files so you can restore them.
+4. Unzip the archive. The deployment root is vc_design_review/. Upload the contents of that folder to the same site path/origin; changing origins can mean a different browser storage area.
+5. Do not delete the backup or previous build during the first checks.
+
+AFTER UPLOAD
+6. Open the app and refresh. Confirm existing tasks, links, checkboxes, planner settings, English profile, dictionary and training history remain present.
+7. Open “Регулярное расписание”. The display should begin with Monday and contain the user's existing sessions; canonical default sessions should be added if missing without duplicating existing rows.
+8. In the planner chat, test one natural phrase, e.g. “Чтения по субботам”; then ask “Что у меня в субботу?” and “Сколько минут английский в среду?”. Make a full backup before experimenting with your real schedule, and remove any intentional test entry afterward.
+9. Test the “Записать факт” control with a temporary value only if you are ready to change that day's calculation. Refresh and confirm the actual-duration record persists.
+10. Check Service Worker / PWA update on the real host. The cache identifier is via-classica-v14.4. Reopen the app after refresh and verify the latest UI is loaded. Offline mode is not claimed as verified by this pre-install report.
+
+If any user data is missing or the new code behaves unexpectedly, stop testing, preserve the backup and old files, restore the previous deployment, and investigate before retrying.
+
+PRE-INSTALL TEST BOUNDARY
+- Browser UI was exercised via Chromium/CDP with isolated in-memory storage because managed Chromium cannot navigate directly to localhost/file URLs.
+- Real deployed-origin storage, native Service Worker installation/update, offline behavior and your actual personal data were not touched or verified here.
+- No live site or user browser storage was changed by this audit.

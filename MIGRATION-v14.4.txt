@@ -1,0 +1,18 @@
+Via Classica v14.4 — data compatibility and migration notes
+Date: 2026-10-25
+
+Storage compatibility
+- Existing keys are retained: viaClassicaV2 (tasks/other app state), viaClassicaPlannerV3 (planner), viaClassicaEnglishV1 (English training/profile/dictionary), and the older viaClassicaPlannerV2 source key.
+- This change does not rename or clear keys and does not require exporting/importing data merely to change the data schema.
+- The Service Worker cache name changes to via-classica-v14.4; activation removes only older caches whose names begin with via-classica-, preserving unrelated application caches.
+
+Migration behavior tested in an isolated storage fixture
+- Existing tasks and other app state stay present.
+- Older generated-plan tasks are normalized without discarding their text/date and are marked legacyPlan when appropriate.
+- The original legacy planner key remains untouched; a pre-v14 snapshot is created.
+- Missing canonical sessions are added idempotently. An existing session with the same identity is preserved, including a user's edited duration; missing sessions are added without duplicates.
+- Malformed planner JSON is backed up under the corrupt-backup key and the app recovers with default planner data.
+
+Chat-created one-off tasks with an explicit date use the existing type='hard' field so automatic replanning does not silently change the requested date. No new data schema is introduced. Start times such as 19:00 remain unsupported and are explicitly described in chat replies.
+
+Always make a full backup before updating an existing deployment. Migration tests use mock storage and do not touch any live user data.

@@ -72,7 +72,7 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=14.3').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=14.4').catch(() => {});
   });
 }
 
