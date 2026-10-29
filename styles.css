@@ -142,3 +142,103 @@ input,select,textarea{max-width:100%;accent-color:var(--terra)}
 .planner-chat-form{align-items:stretch}.planner-chat-form input{font-size:14px;min-height:46px;background:#fffdf8}.planner-chat-form button{min-width:112px}
 .planner-chat-hints{font-size:11px;line-height:1.5}.actual-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:40px;border-color:#cfc5b4;background:#fffcf5;color:#405649;font-size:12px}.actual-btn:hover{border-color:#93a28e;background:#eaf0e5}
 @media(max-width:800px){.planner-chat-messages{padding:10px;max-height:320px}.planner-chat-msg{max-width:94%}.planner-chat-examples{gap:6px}.planner-chat-examples>span{width:100%}.planner-chat-examples button{min-height:35px}.planner-chat-form button{width:100%;min-height:44px}}
+/* P2: provenance-aware monthly events; no decorative placeholder cards. */
+.month-empty{margin:0;padding:12px 0;color:var(--muted);font-size:14px;line-height:1.6}
+.calendar-status{color:var(--muted);font-size:11px;line-height:1.6;margin:12px 0 0}
+.calendar-event{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-bottom:1px solid var(--line);padding:10px 0 14px;overflow-wrap:anywhere}
+.calendar-event:last-child{border-bottom:0}
+.calendar-date{font-size:14px;color:var(--green)}
+.calendar-name{font-size:14px;font-weight:650}
+.calendar-event a{font-size:12px;color:var(--green2);text-underline-offset:2px;min-height:30px;display:inline-flex;align-items:center}
+.calendar-provenance,.calendar-comment{color:var(--muted);font-size:11px;line-height:1.5}
+
+/* v14.9-p3: explicit session length and honest external-resource directory. */
+.english-length-label{display:block;font-weight:650;margin:1rem 0 .35rem;color:var(--text,#24312d)}
+.english-start #englishLength{display:block;width:min(100%,390px);margin-bottom:1rem;min-height:44px}
+.source-directory{margin-top:1.25rem;padding:1rem;border:1px solid var(--line,#ddd8ce);border-radius:10px}
+.source-directory summary{cursor:pointer;font-weight:650;min-height:44px;display:flex;align-items:center}
+.source-directory li{margin:.5rem 0;line-height:1.5}
+.source-directory a{overflow-wrap:anywhere}
+
+
+/* Via Classica v15.0-p4 — Epigraphica: legible scholarly typography, not a decorative hero.
+ * All font names refer to locally installed families only. No network font fetches.
+ * Where Noto is not installed, OS serif/sans fallbacks render offline. */
+:root{--bg:#EEE9DE;--paper:#FAF8F2;--ink:#292A27;--text:#292A27;--muted:#50554F;--green:#293B36;--green2:#265C51;--terra:#833E34;--gold:#71603C;--line:#C7C2B6;--shadow:none;--radius:6px;--focus-ring:0 0 0 3px #B87A56}
+html{scroll-padding-top:76px}body{background:var(--bg);color:var(--ink);font-family:"Noto Sans", "DejaVu Sans", Arial, sans-serif;font-size:14px;line-height:1.55}
+.app{min-width:0}main{width:min(1120px,calc(100% - 64px))}h1,h2,h3,.brand b,.link-title,.panel-title h3,.section-hero h2,.page-header h1,.info-card h3,.phase h3,.timeline h3,.year-grid h3{font-family:"Noto Serif",Georgia,"DejaVu Serif",serif;letter-spacing:-.018em;color:var(--ink)}
+button,input,select,textarea{font-family:inherit}button{color:inherit}button[hidden]{display:none!important}p{max-width:75ch}a{color:var(--green2)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid #A0523D;outline-offset:3px;box-shadow:none!important}
+.skip-link{position:fixed;top:-70px;left:12px;z-index:120;padding:12px 20px;background:#fff;color:#292A27;border:2px solid #833E34}.skip-link:focus{top:8px}
+.topbar{height:66px;padding-inline:max(28px,calc((100vw - 1120px)/2));gap:24px;background:#FAF8F2;border-bottom:1px solid #A8A99F;box-shadow:none;backdrop-filter:none}
+.brand{min-width:185px;gap:10px}.brand-mark{display:grid;place-items:center;flex:0 0 36px;height:36px;width:36px;border:1px solid var(--terra);border-radius:0;font:700 12px "Noto Serif",Georgia,serif;color:var(--terra);letter-spacing:-.09em}.brand b{font:700 13px "Noto Serif",Georgia,serif;letter-spacing:.10em}.brand small{font-size:10px;color:var(--muted)}
+.quick-nav{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-left:auto}.quick-nav button{min-height:44px;background:transparent;border:none;border-bottom:2px solid transparent;padding:11px 12px;font-size:12px;font-weight:650}.quick-nav button:hover,.quick-nav button.quick-active{border-bottom-color:var(--terra);color:#833E34}
+.menu-btn{border:1px solid var(--line);background:transparent;border-radius:2px;min-width:44px;height:44px;font-size:18px;color:var(--ink)}.drawer{background:var(--paper);box-shadow:-18px 0 45px #292A2730;padding:24px;gap:0}.drawer-head h2{font-size:26px}.main-nav{gap:6px}.main-nav button{padding:11px 10px;border-radius:2px;min-height:44px;font-weight:600}.main-nav button span{font:600 10px "Noto Serif",Georgia,serif;color:var(--terra)}.main-nav .nav-child{margin-left:34px;padding:6px 12px;min-height:44px;border-left:1px solid var(--line);font-size:13px;font-weight:400;color:#4B504B}.main-nav button:hover,.main-nav button.active{background:#EBE6DC;color:#833E34}.drawer-head button{border-radius:2px;font-size:26px}.drawer-utility{min-height:44px;padding:10px 0;text-decoration:underline;text-underline-offset:3px;color:var(--green2)}.drawer-note{font-size:12px}
+.page-header{padding:27px 0 3px}.page-header small,.section-hero small,.panel-title small,.eyebrow,.workspace-index{letter-spacing:.08em;color:var(--terra);font-weight:700;font-size:10px}.page-header h1{font-size:clamp(31px,3.6vw,46px);line-height:1.2;margin:1px 0 0;font-weight:500}.page{padding-bottom:62px}.home-intro{font-size:12px;margin:1px 0 13px;color:var(--muted)}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);grid-template-areas:"today event" "today rest";align-items:start;gap:12px;margin:0}.today-panel{grid-area:today}.month-panel{grid-area:event}.rest-panel{grid-area:rest}
+.panel,.info-card,.phase,.timeline article,.year-grid article,.links-grid article,.english-card{background:var(--paper);border:1px solid var(--line);border-radius:5px;box-shadow:none}.panel{padding:20px 22px}.panel-title{margin-bottom:11px;gap:10px;align-items:center}.panel-title h3{font-weight:500;font-size:24px;margin:0}.today-badge{border:1px solid var(--line);border-radius:2px;padding:5px 8px;color:var(--green2);white-space:normal;font-size:11px}
+.today-summary{margin-bottom:8px}.today-summary i{height:4px;border-radius:0}.today-summary i em{background:var(--green2)}.today-summary small{font-size:11px}.today-fixed{font-size:12px}.today-panel .task-list{gap:3px;max-height:190px;overflow-y:auto;scrollbar-width:thin}.task-item{padding:8px 0;gap:10px;border-bottom:1px solid #DFDAD0}.task-item .task-check,.task-item .task-more{border-radius:2px;min-width:44px;min-height:44px}.task-item .task-main{min-width:0;overflow-wrap:anywhere}.task-item .task-main small{display:block;font-size:11px}.today-panel .empty{font-size:13px;padding:12px 0;background:transparent;border:0;text-align:left}
+.task-editor{border-top:1px solid var(--line);margin-top:10px;padding-top:4px}.task-editor>summary{list-style:none;cursor:pointer;color:var(--green2);font-size:12px;font-weight:700;min-height:44px;display:flex;align-items:center}.task-editor>summary::-webkit-details-marker{display:none}.task-editor .add-form{margin-top:6px}.task-editor:not([open]) .add-form{display:none}.task-editor[open]>summary{color:var(--terra)}.add-form input,.add-form select,.modal input,.modal select,.link-toolbar select{border-radius:3px;background:#fff;color:var(--ink);border:1px solid #A8A99F}.add-form button{background:var(--green);border-radius:3px;min-height:44px}
+.month-panel .panel-title{margin-bottom:3px}.month-panel .panel-title h3{font-size:19px}.calendar-event{border-bottom:0;padding:7px 0 0;gap:4px}.calendar-date{color:var(--terra);font-size:18px;font-family:"Noto Serif",Georgia,serif}.calendar-name{font-size:13px}.calendar-event a{min-height:44px;padding:8px 0;text-decoration:underline;text-underline-offset:3px;color:var(--green2)}.calendar-provenance,.calendar-comment{font-size:11px;color:var(--muted)}.calendar-status{font-size:10px;line-height:1.4;margin-top:5px}.month-panel .text-link{font-size:12px;min-height:44px;display:inline-flex;align-items:center;margin-top:4px;text-decoration:underline;text-underline-offset:2px}.month-empty{font-size:13px;padding:9px 0}
+.rest-panel{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-left:3px solid #265C51;background:var(--paper);padding:13px 16px;min-width:0}.rest-panel small{font-size:10px;letter-spacing:.07em;font-weight:650;color:var(--terra)}.rest-panel h3{font-size:18px;font-weight:500;margin:0;line-height:1.3}.rest-panel p{font-size:11px;margin:1px 0 0;color:var(--muted);line-height:1.45}.rest-symbol{font:28px "Noto Serif",Georgia,serif;color:var(--green2)}.rest-settings{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;font-size:11px;color:var(--green2);min-height:44px;min-width:44px;margin-left:auto;flex:0 0 auto}
+.planner-workspace{border-top:1px solid #A9AAA2;border-bottom:1px solid #A9AAA2;margin:23px 0 18px;padding:0;scroll-margin-top:70px}.workspace-heading{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:12px 1px;min-height:72px}.workspace-heading::-webkit-details-marker{display:none}.workspace-heading>span:first-child{display:grid;gap:1px}.workspace-heading strong{font:500 21px "Noto Serif",Georgia,serif}.workspace-heading small{font-size:11px;color:var(--muted)}.workspace-heading>span:last-child{font-size:22px;color:var(--terra)}.planner-workspace[open] .workspace-heading>span:last-child{transform:rotate(45deg)}.workspace-content{padding:8px 0 18px;display:grid;gap:12px}.workspace-content .panel{margin:0}.planner-controls{border:0;border-left:3px solid var(--line);background:#F7F4EC}.planner-controls h3{font-size:17px}.planner-controls p,.planner-chat-head p{font-size:12px;line-height:1.5}.planner-chat{border-color:var(--line);background:var(--paper);background-image:none}.planner-chat-messages{border-radius:3px}.planner-chat-examples button{border-radius:3px;background:#fff;min-height:44px}.planner-chat-msg,.planner-chat-msg.user{border-radius:3px}.planner-chat-msg.user{background:var(--green)}.recurring-panel{border-radius:3px}
+.english-home-card{margin-top:14px;box-shadow:none}.english-home-card h3{font-size:22px}.english-home-card p{font-size:13px}.focus-strip{display:none}
+.section-hero{border-bottom:1px solid var(--line);padding-bottom:15px;align-items:center;margin-bottom:20px}.section-hero h2{font-size:clamp(27px,4.5vw,43px);line-height:1.16;margin:4px 0 9px}.section-hero p{font-size:13px}.roman,.circle-word,.school-mark,.link-symbol{color:var(--terra);font-size:16px}.circle-word{width:78px;height:78px;padding:9px}
+.cards-grid,.ielts-grid,.year-grid,.links-grid{gap:12px}.info-card,.phase,.year-grid article,.links-grid article{padding:18px}.info-card h3,.phase h3,.year-grid h3,.timeline h3{font-size:22px}.info-card a,.resource-box a{color:var(--green2);text-decoration:underline}.card-top span{color:var(--gold)}.strategy,.resource-box,.note-card{background:#E7E1D5;border-left:2px solid var(--terra);border-radius:0}.timeline article{padding:19px 23px;margin-left:4px}.timeline:before{background:var(--line)}.timeline article:before{background:var(--terra)}.link-toolbar .primary,.primary{background:var(--terra)!important;color:white!important;border:1px solid var(--terra)!important;border-radius:3px!important}.primary:hover{background:#673128!important}.ghost,.ghost-dark,.subroute-link{border:1px solid #737A70;border-radius:3px!important;color:var(--ink)!important;background:transparent!important;min-height:44px}.ghost:hover,.ghost-dark:hover{background:#EAE5DB!important}.link-toolbar select{min-height:44px}.links-grid article{min-height:154px}.link-bottom button,.modal-close{min-height:44px;min-width:44px}.modal-card{border-radius:3px}.english-card{border-radius:4px}.english-card .ghost{color:var(--ink)}
+.subroute{background:#F7F4EC;border:1px solid var(--line);padding:14px 18px;margin:15px 0;display:flex;align-items:center;gap:16px;justify-content:space-between}.subroute b{font-family:"Noto Serif",Georgia,serif;font-size:18px}.subroute p{font-size:12px;color:var(--muted);margin:3px 0}.subroute-link{background:transparent;padding:8px 12px;font-size:12px;flex-shrink:0}
+.section-tabs{display:flex;align-items:center;gap:7px;border-bottom:1px solid #A9AAA2;margin:0 0 17px;overflow-x:auto;scrollbar-width:thin}.section-tabs button{background:transparent;border:0;border-bottom:2px solid transparent;padding:11px 9px;min-height:44px;flex-shrink:0;font-size:12px}.section-tabs button[aria-current="page"]{border-color:var(--terra);font-weight:700;color:var(--terra)}
+/* Neutralize decorative visual tokens that obscure content without changing stored data. */
+.link-cat,.phase>span,.timeline article>span,.year-grid article>span{color:var(--terra)}
+@media(max-width:940px){.quick-nav{display:none}.topbar{justify-content:space-between}.menu-btn{margin-left:auto}}
+@media(max-width:800px){main{width:calc(100% - 36px)}.dashboard-grid{grid-template-columns:1fr;grid-template-areas:"today" "event" "rest";gap:10px}.panel{padding:16px}.rest-panel{padding:10px 14px}.topbar{height:58px;padding-inline:18px}.page-header{padding:19px 0 1px}.page-header h1{font-size:31px}.page-header small{font-size:9px}.home-intro{font-size:11px;margin:1px 0 10px}.today-panel .task-list{max-height:112px}.today-panel .panel-title h3{font-size:22px}.month-panel .panel-title h3{font-size:19px}.calendar-status{font-size:10px}.month-panel .text-link{margin-top:2px}.section-hero{align-items:flex-start}.section-hero p{line-height:1.5}.subroute{flex-wrap:wrap}.planner-workspace{margin:18px 0 10px}.workspace-heading{min-height:66px}.workspace-heading strong{font-size:19px}}
+@media(max-width:480px){main{width:calc(100% - 24px)}.topbar{padding-inline:12px}.brand{min-width:0}.brand b{font-size:11px}.brand small{font-size:9px}.brand-mark{flex-basis:30px;width:30px;height:30px;font-size:10px}.page-header h1{font-size:28px}.page-kicker{font-size:8px!important}.panel{padding:13px 14px;border-radius:3px}.panel-title{margin-bottom:7px}.today-summary{margin-bottom:5px}.today-panel .task-list{max-height:108px}.task-item{padding:5px 0}.task-item .task-check,.task-item .task-more{min-width:44px;min-height:44px}.month-panel .calendar-event{padding-top:4px}.month-panel .calendar-comment{display:none}.rest-panel{padding:7px 10px;gap:8px}.rest-panel h3{font-size:17px}.rest-settings{font-size:10px;max-width:84px}.rest-symbol{font-size:24px}.today-badge{font-size:10px}.section-hero h2{font-size:28px}.section-hero .circle-word,.section-hero .roman{display:none}.drawer{padding:16px}.main-nav{padding:15px 0}.task-editor .add-form{display:grid;grid-template-columns:1fr 90px;gap:7px}.task-editor .add-form input:first-child{grid-column:1/-1}.task-editor .add-form button{grid-column:1/-1}.focus-strip{display:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.planner-workspace[open] .workspace-heading>span:last-child{transition:none}}
+
+/* Optional fixed lessons shown on demand, preserving DOM and the planner's controls. */
+.today-fixed-details{border-top:1px solid var(--line);margin:5px 0 0}
+.today-fixed-details>summary{color:var(--green2);font-size:11px;min-height:44px;display:flex;align-items:center;cursor:pointer}
+.today-fixed-details[open] #todayFixed{padding-bottom:8px}
+.today-panel .fixed-item{padding:8px 0}
+
+/* Small-screen first viewport: keep all three required pieces visible on 320 px. */
+@media(min-width:640px) and (max-width:940px){.dashboard-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-areas:"today event" "today rest";align-items:start}.today-panel .task-list{max-height:180px}}
+@media(max-width:350px){.page-header{padding-top:10px}.page-kicker{display:none}.home-intro{font-size:10px}.month-panel .calendar-status:not(:empty){font-size:9px;line-height:1.25;margin-top:2px}.month-panel .calendar-provenance{font-size:10px}.month-panel .calendar-date{font-size:16px}.panel{padding:10px 12px}.rest-panel{padding:5px 9px}.rest-panel p{font-size:10px}.month-panel .calendar-event a{min-height:40px}.today-panel .task-list{max-height:96px}}
+
+/* Touch and keyboard sizes; treat checkbox labels as controls. */
+.primary,.ghost,.ghost-dark,.text-link,.actual-btn,.nav-child,.section-tabs button,.subroute-link,.drawer-utility,.link-bottom a,.source-open{min-height:44px}
+.info-card label,.phase label,.timeline label,.year-grid label,.checkline{min-height:44px;align-items:center;padding:6px 0}
+.link-bottom button,.task-item button{min-width:44px;min-height:44px}
+@media(max-width:350px){.today-panel .task-list{max-height:96px}}
+/* Keep the first 320 px-wide viewport dedicated to the three daily blocks. */
+@media(max-width:350px){.planner-workspace{margin-top:78px}}
+
+/* D1.0 diagnostic panel: local-only, accessible, no decorative changes to Epigraphica. */
+.diagnostic-entry{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.2rem;padding:1.1rem 1.25rem}
+.diagnostic-entry button{min-height:44px}
+.diagnostic-entry h3,.diag-head h3{margin:.3rem 0;font-size:1.25rem}
+.diagnostic-entry p,.diag-head p{margin:.4rem 0;line-height:1.55}
+.diag-panel[hidden]{display:none!important}
+.diag-panel{margin-top:1rem;padding:1.2rem;scroll-margin-top:5rem}
+.diag-head{margin-bottom:1rem}
+.diag-small{font-size:.9rem;line-height:1.5;opacity:.85}
+.diag-notice{border-left:3px solid #833e34;padding:.7rem 1rem;background:#f4eee5;color:#432a24;line-height:1.55}
+.diag-progress{margin:1rem 0;font-weight:650;font-variant-numeric:tabular-nums}
+.diag-question{max-width:850px}
+.diag-passage{border:1px solid #b1aca3;padding:1rem;margin:1rem 0;white-space:pre-line;line-height:1.7;overflow-wrap:anywhere}
+.diag-choices{border:0;padding:0;margin:1rem 0;min-width:0}
+.diag-choices legend{font-weight:600;margin-bottom:.5rem}
+.diag-choice{display:flex;align-items:center;gap:.75rem;padding:.65rem .5rem;border-bottom:1px solid #c7c0b7;min-height:44px;cursor:pointer}
+.diag-choice input{width:20px;height:20px;flex:none;accent-color:#833e34}
+.diag-choice span{overflow-wrap:anywhere}
+.diag-buttons{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin-top:1rem}
+.diag-buttons button{min-height:44px;padding:.65rem 1.1rem}
+.diag-score{display:flex;justify-content:space-between;gap:1rem;padding:.7rem 0;border-bottom:1px solid #c7c0b7}
+.diag-review,.diag-history{margin:1rem 0;padding:.7rem 0;border-bottom:1px solid #c7c0b7;overflow-wrap:anywhere}
+.diag-panel button:focus-visible,.diag-panel input:focus-visible,.diagnostic-entry button:focus-visible{outline:3px solid #8c3e32;outline-offset:3px}
+@media(max-width:600px){.diagnostic-entry{flex-direction:column;align-items:stretch}.diag-panel{padding:1rem}.diag-buttons{flex-direction:column;align-items:stretch}.diag-buttons button{width:100%}}
+@media(prefers-reduced-motion:reduce){.diag-panel *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Final repetitio 2026-10-28: accessible targets without changing behaviour. */
+.recurring-item button[data-remove-rec]{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.planner-actions #dayMode{min-height:44px}
+#olympiads .info-card>a{display:inline-flex;align-items:center;min-height:44px;max-width:100%;overflow-wrap:anywhere}

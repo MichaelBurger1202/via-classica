@@ -10,8 +10,11 @@
     "lunchApprox": "17:30–18:00",
     "dinnerApprox": "около 20:00–20:30",
     "homeworkTrackedByApp": false,
-    "roadIsFreeTime": true,
-    "roadAllowed": ["Quizlet", "короткий быстрый ввод/выбор ответа в Via Classica"]
+    "roadIsFreeTime": false,
+    "roadAllowed": [
+      "Quizlet",
+      "короткий быстрый ввод/выбор ответа в Via Classica"
+    ]
   },
   "rules": {
     "alwaysReserveRest": true,
@@ -23,16 +26,63 @@
     "weeklyStateIsFactual": true
   },
   "fixed_commitments": [
-    {"id":"fixed-mon-litclub","day":"Понедельник","activity":"литературный клуб","title":"Литературный клуб","minutes":75,"bufferAfter":30},
-    {"id":"fixed-wed-ielts","day":"Среда","activity":"английский / IELTS / speaking","title":"IELTS + Speaking","minutes":60,"bufferAfter":30},
-    {"id":"fixed-thu-literature","day":"Четверг","activity":"ЕГЭ · литература","title":"ЕГЭ литература","minutes":90,"bufferAfter":30},
-    {"id":"fixed-sun-ielts","day":"Воскресенье","activity":"английский / IELTS / speaking","title":"IELTS + Speaking","minutes":60,"bufferAfter":30}
+    {
+      "id": "fixed-mon-litclub",
+      "day": "Понедельник",
+      "activity": "литературный клуб",
+      "title": "Литературный клуб",
+      "minutes": 75,
+      "bufferAfter": 30
+    },
+    {
+      "id": "fixed-wed-ielts",
+      "day": "Среда",
+      "activity": "английский / IELTS / speaking",
+      "title": "IELTS + Speaking",
+      "minutes": 60,
+      "bufferAfter": 30
+    },
+    {
+      "id": "fixed-thu-literature",
+      "day": "Четверг",
+      "activity": "ЕГЭ · литература",
+      "title": "ЕГЭ литература",
+      "minutes": 90,
+      "bufferAfter": 30
+    },
+    {
+      "id": "fixed-sat-readings",
+      "day": "Суббота",
+      "activity": "чтения",
+      "title": "Чтения",
+      "minutes": 90,
+      "bufferAfter": 30
+    },
+    {
+      "id": "fixed-sat-speaking",
+      "day": "Суббота",
+      "activity": "разговорный клуб / английский",
+      "title": "Speaking Club",
+      "minutes": 90,
+      "bufferAfter": 30
+    },
+    {
+      "id": "fixed-sun-ielts",
+      "day": "Воскресенье",
+      "activity": "английский / IELTS / speaking",
+      "title": "IELTS + Speaking",
+      "minutes": 60,
+      "bufferAfter": 30
+    }
   ],
   "recurring_self_study": [],
   "notes": [
-    "Вторник, пятница и суббота не имеют автоматически назначенной самостоятельной нагрузки.",
-    "Дорога не планируется автоматически; пользователь сам решает, делать ли короткую лёгкую практику.",
-    "Латынь и древнегреческий являются частью реальной учебной нагрузки, но отдельными задачами Via Classica не создаются.",
-    "Длительность фиксированного занятия может быть изменена фактически после его окончания."
-  ]
+    "Вторник и пятница не имеют автоматически назначенных фиксированных занятий или самостоятельной нагрузки.",
+    "Субботние «Чтения» и «Speaking Club» являются фиксированными занятиями по 90 минут каждое.",
+    "Дорога не планируется автоматически; краткую лёгкую практику можно выполнять по желанию.",
+    "Латынь и древнегреческий являются частью реальной нагрузки, но отдельными задачами Via Classica не создаются.",
+    "Пользовательская длительность и удаление регулярных занятий сохраняются в viaClassicaPlannerV3 и имеют приоритет над значениями по умолчанию.",
+    "Этот JSON является синхронизированной справочной копией DEFAULT_RECURRING из planner.js; приложение не импортирует его автоматически."
+  ],
+  "runtimeSource": "planner.js DEFAULT_RECURRING (JSON is a synchronised reference snapshot, not an input to runtime startup)"
 }

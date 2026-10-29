@@ -1,17 +1,22 @@
-const CACHE = 'via-classica-v14.6';
+const CACHE = 'via-classica-v15.2-r2-candidate';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=14.6',
-  './app.js?v=14.6',
-  './planner.js?v=14.6',
-  './planner-inline.js?v=14.6',
-  './english.js?v=14.6',
-  './manifest.webmanifest?v=14.6',
+  './styles.css?v=15.2-r1',
+  './storage-guard.js?v=15.0-p4',
+  './app.js?v=15.2-r2',
+  './planner.js?v=15.1-d1',
+  './english.js?v=15.2-r2',
+  './manifest.webmanifest?v=15.2-r2',
   './icon-192.png',
   './icon-512.png',
-  './via-classica-schedule-current.json?v=14.6',
-  './sw.js?v=14.6'
+  './via-classica-schedule-current.json?v=15.0-p4',
+  './calendar.js?v=15.0-p4',
+  './design.js?v=15.0-p4',
+  './diagnostics.js?v=15.2-draft',
+  './english-diagnostic-bank-v1.json?v=15.1-d1',
+  './via-classica-events-current.json?v=15.0-p4',
+  './sw.js?v=15.2-r2'
 ];
 
 self.addEventListener('install', event => {
@@ -46,6 +51,17 @@ self.addEventListener('fetch', event => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        // Only document navigations can safely fall back to the app shell.
+        // Returning index.html for a missing JS/CSS/JSON request disguises
+        // an offline error as a successful resource with the wrong content.
+        if (request.mode === 'navigate') {
+          const shell = await caches.match('./index.html');
+          if (shell) return shell;
+        }
+        return new Response('Ресурс недоступен офлайн.', {status: 503, headers: {'Content-Type':'text/plain; charset=utf-8'}});
+      })
   );
 });

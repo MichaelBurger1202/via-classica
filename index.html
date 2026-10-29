@@ -7,49 +7,67 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Via Classica — 2026–2029</title>
-<link rel="stylesheet" href="styles.css?v=14.6">
-<link rel="manifest" href="manifest.webmanifest?v=14.6">
+<link rel="stylesheet" href="styles.css?v=15.2-r1">
+<link rel="manifest" href="manifest.webmanifest?v=15.2-r2">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
+<a class="skip-link" href="#mainContent">Перейти к содержанию</a>
 <div class="app">
   <header class="topbar">
-    <a class="brand" href="#" data-page="home"><span class="brand-mark">☼</span><span><b>VIA CLASSICA</b><small>ad Italiam · 2029</small></span></a>
-    <div class="top-progress"><span id="pct">0%</span><i><em id="bar"></em></i></div>
+    <a class="brand" href="#" data-page="home"><span class="brand-mark" aria-hidden="true">VC</span><span><b>VIA CLASSICA</b><small>учёба · путь · источники</small></span></a>
+    <nav class="quick-nav" aria-label="Основные разделы"><button data-page="home" class="quick-active">Сегодня</button><button data-page="fullplan">Путь</button><button data-page="english">Английский</button><button data-page="olympiads">Олимпиады</button><button data-page="links">Архив</button></nav>
     <button class="menu-btn" id="menuBtn" aria-label="Открыть меню" aria-controls="drawer" aria-expanded="false">☰</button>
   </header>
 
-  <aside class="drawer" id="drawer">
-    <div class="drawer-head"><div><small>VIA CLASSICA</small><h2>Навигация</h2></div><button id="closeMenu">×</button></div>
-    <nav class="main-nav">
-      <button class="active" data-page="home"><span>⌂</span>Главная</button>
-      <button data-page="olympiads"><span>♜</span>Олимпиады</button>
-      <button data-page="ielts"><span>Α</span>IELTS</button>
-      <button data-page="english"><span>EN</span>Английский</button>
-      <button data-page="fullplan"><span>↠</span>Полный план до поступления</button>
-      <button data-page="grade11"><span>XI</span>План до конца 11 класса</button>
-      <button data-page="links"><span>↗</span>Архив ссылок</button>
+  <aside class="drawer" id="drawer" aria-hidden="true" inert>
+    <div class="drawer-head"><div><small>VIA CLASSICA</small><h2>Навигация</h2></div><button id="closeMenu" type="button" aria-label="Закрыть меню">×</button></div>
+    <nav class="main-nav" aria-label="Разделы Via Classica">
+      <button class="active" data-page="home"><span aria-hidden="true">01</span>Сегодня</button>
+      <div class="nav-group"><button data-page="fullplan"><span aria-hidden="true">02</span>Путь к поступлению</button>
+        <button class="nav-child" data-page="grade11">Учебные годы · X—XI</button></div>
+      <div class="nav-group"><button data-page="english"><span aria-hidden="true">03</span>Английский</button>
+        <button class="nav-child" data-page="ielts">IELTS · этап подготовки</button></div>
+      <button data-page="olympiads"><span aria-hidden="true">04</span>Олимпиады</button>
+      <button data-page="links"><span aria-hidden="true">05</span>Архив источников</button>
     </nav>
-    <div class="drawer-note">10 класс · 2026/27<br>Главная цель: Classics, Sapienza
-      <button class="drawer-utility" type="button" data-page="data">Данные и резервная копия ↗</button>
+    <div class="drawer-note">10 класс · 2026/27<br>СПбГУ · классическая филология<br>Италия — возможный следующий маршрут
+      <button class="drawer-utility" type="button" data-page="data">Настройки и резервная копия</button>
       <button class="install-app ghost" id="installAppBtn" type="button" hidden>Установить Via Classica</button>
     </div>
   </aside>
   <div class="overlay" id="overlay"></div>
 
-  <main>
-    <header class="page-header"><div><small>VIA CLASSICA · 2026—2029</small><h1 id="title">Сегодня и этот месяц</h1></div></header>
+  <main id="mainContent" tabindex="-1">
+    <header class="page-header"><div><small class="page-kicker">ЛИЧНЫЙ УЧЕБНЫЙ ЖУРНАЛ · MMXXVI—MMXXIX</small><h1 id="title">Сегодня</h1></div></header>
 
     <section id="home" class="page active">
-      <div class="hero">
-        <div class="hero-copy"><small>AD MAIORA</small><h2>Не весь путь сразу.<br>Только следующий шаг.</h2><p>Главный экран — для сегодняшних задач и ближайших событий. Всё остальное живёт в меню.</p><div class="hero-actions"><button class="primary" data-add-task>+ Добавить задачу</button><button class="ghost" data-page="fullplan">Посмотреть путь →</button></div></div>
-        <div class="hero-art"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ancient%20Greece%20Marble%20Bust%20of%20Artemis%20or%20Apollo%2C%20330-300%20BC%20%2828120065434%29.jpg?width=720" alt="Античный мраморный бюст" loading="lazy"><span>Ἀρετή · virtus</span></div>
+      <p class="home-intro">Только ближайшее. Остальные планы — в разделе «Путь».</p>
+      <div class="dashboard-grid" aria-label="Сводка дня">
+        <section class="panel today-panel" aria-labelledby="todayDate"><div class="panel-title"><div><small>01 · ПЛАН ДНЯ</small><h3 id="todayDate">Сегодня</h3></div><span class="today-badge">обычный</span></div>
+          <div id="todaySummary" class="today-summary"></div><div id="todayTasks" class="task-list"></div>
+          <details class="task-editor" id="taskEditor"><summary>+ Добавить самостоятельную задачу</summary><form id="taskForm" class="add-form"><input id="taskInput" aria-label="Название самостоятельной задачи" type="text" placeholder="Новая самостоятельная задача…" autocomplete="off"><select id="taskType" aria-label="Тип задачи"><option value="move">Переносимая</option><option value="soft">Лёгкая</option><option value="hard">Жёсткая</option></select><input id="taskMinutes" type="number" min="5" step="5" value="45" aria-label="Минут"><button>Добавить</button></form></details>
+        </section>
+        <section class="panel month-panel" aria-label="Ближайшее официальное событие"><div class="panel-title"><div><small>02 · ОФИЦИАЛЬНОЕ СОБЫТИЕ</small><h3 id="monthTitle"></h3></div><span id="monthNumber"></span></div>
+          <div id="monthEvents" class="month-list" aria-live="polite"><p class="month-empty">Проверяем доступные официальные события…</p></div>
+          <p id="calendarStatus" class="calendar-status" role="status" aria-live="polite"></p>
+          <button class="text-link" data-page="olympiads">Все олимпиады →</button>
+        </section>
+        <section class="rest-panel" aria-labelledby="restHeading">
+          <div class="rest-symbol" aria-hidden="true">◌</div>
+          <div><small>03 · СОСТОЯНИЕ ДНЯ</small><h3 id="restHeading">Отдых</h3><p id="restStatusValue" aria-live="polite">Отдых учитывается в дневном бюджете</p></div>
+          <button type="button" class="rest-settings" id="restSettings">Режим дня →</button>
+        </section>
       </div>
 
-      <div class="planner-controls panel">
+
+
+      <details class="planner-workspace" id="plannerWorkspace">
+        <summary class="workspace-heading"><span><span class="workspace-index">РАСПИСАНИЕ И ПЛАНИРОВЩИК</span><strong>Управление планом</strong><small>Режим дня, фиксированные занятия и команды</small></span><span aria-hidden="true">＋</span></summary>
+        <div class="workspace-content"><div class="planner-controls panel">
         <div><small class="eyebrow">VIA CLASSICA · НОВАЯ ЭРА</small><h3 id="plannerStatus">Планировщик бережно распределяет только самостоятельную нагрузку</h3><p>Школа, домашнее задание, дорога и отдых не превращаются в задачи приложения. Фиксированные занятия учитываются автоматически, а свободное время не заполняется целиком.</p></div>
-        <div class="planner-actions"><select id="dayMode" aria-label="Режим дня"><option value="normal">Обычный день</option><option value="light">Лёгкий день</option><option value="heavy">Насыщенный день</option><option value="rest">Отдых</option></select><button class="ghost-dark" id="freezeDay">💤 Отдых сегодня</button><button class="text-link" id="replanBtn">Пересчитать →</button></div>
+        <div class="planner-actions"><select id="dayMode" aria-label="Режим дня"><option value="normal">Обычный день</option><option value="light">Лёгкий день</option><option value="heavy">Насыщенный день</option><option value="rest">Отдых</option></select><button class="ghost-dark" id="freezeDay">Отдых сегодня</button><button class="text-link" id="replanBtn">Пересчитать →</button></div>
       </div>
       <div class="planner-chat panel" id="plannerChat">
         <div class="planner-chat-head"><div><small class="eyebrow">ЧАТ С ПЛАНЕРОМ</small><h3>Скажи своими словами</h3><p>Планер понимает день, длительность и название занятия в одном сообщении. Можно добавлять, переносить, менять длительность и удалять занятия обычной фразой.</p></div><button class="text-link" id="plannerChatClear">Очистить чат</button></div>
@@ -58,27 +76,21 @@
         <form id="plannerChatForm" class="planner-chat-form"><input id="plannerChatInput" autocomplete="off" aria-label="Сообщение планеру" placeholder="Например: Добавь чтения по субботам на полтора часа"><button class="primary" type="submit">Отправить</button></form>
         <div class="planner-chat-hints"><span>Можно написать несколько дней сразу: «Английский по средам и воскресеньям по часу».</span></div>
       </div>
+      <details class="today-fixed-details"><summary>Фиксированные занятия сегодня</summary><div id="todayFixed" class="today-fixed"></div></details>
       <div class="recurring-panel panel"><div class="panel-title"><div><small>РЕГУЛЯРНОЕ РАСПИСАНИЕ</small><h3>Что уже зафиксировано</h3></div><span class="today-badge">+30 мин резерв после занятия</span></div><div id="recurringSchedule" class="recurring-schedule"></div></div>
 
+        </div>
+      </details>
       <div id="alerts" class="alerts"></div>
 
-      <div class="dashboard-grid">
-        <section class="panel today-panel"><div class="panel-title"><div><small>СЕГОДНЯ</small><h3 id="todayDate">Сегодня</h3></div><span class="today-badge">фокус</span></div>
-          <div id="todaySummary" class="today-summary"></div><div id="todayFixed" class="today-fixed"></div><div id="todayTasks" class="task-list"></div>
-          <form id="taskForm" class="add-form"><input id="taskInput" type="text" placeholder="Новая самостоятельная задача…" autocomplete="off"><select id="taskType" aria-label="Тип задачи"><option value="move">Переносимая</option><option value="soft">Лёгкая</option><option value="hard">Жёсткая</option></select><input id="taskMinutes" type="number" min="5" step="5" value="45" aria-label="Минут"><button>Добавить</button></form>
-        </section>
-        <section class="panel month-panel"><div class="panel-title"><div><small>ЭТОТ МЕСЯЦ</small><h3 id="monthTitle"></h3></div><span id="monthNumber"></span></div>
-          <div id="monthEvents" class="month-list"></div>
-          <button class="text-link" data-page="olympiads">Все дедлайны →</button>
-        </section>
-      </div>
 
-      <div class="english-home-card panel"><div><small class="eyebrow">🇬🇧 АНГЛИЙСКИЙ</small><h3>Ежедневная адаптивная тренировка</h3><p>10 заданий · 7–10 минут · общий международный английский для жизни и университета.</p></div><button class="primary" data-english-action="train">Начать</button></div>
 
-      <div class="focus-strip"><div><span>01</span><b>Олимпиады</b><small>СПбГУ + «Высшая проба» — ядро</small></div><div><span>02</span><b>Школа</b><small>Сильный 10 класс без перегруза</small></div><div><span>03</span><b>Языки</b><small>Латынь и греческий — в школе</small></div><div><span>04</span><b>Италия</b><small>Стратегия сейчас, документы позже</small></div></div>
+      <div class="english-home-card panel"><div><small class="eyebrow">АНГЛИЙСКИЙ · ПРАКТИКА</small><h3>Ежедневная адаптивная тренировка</h3><p>10 заданий · 7–10 минут · общий международный английский для жизни и университета.</p></div><button class="primary" data-english-action="train">Начать</button></div>
+
+      <div class="focus-strip" aria-label="Направления подготовки"><div><span>01</span><b>Олимпиады</b><small>СПбГУ + «Высшая проба» — ядро</small></div><div><span>02</span><b>Школа</b><small>Сильный 10 класс без перегруза</small></div><div><span>03</span><b>Языки</b><small>Латынь и греческий — в школе</small></div><div><span>04</span><b>Италия</b><small>Стратегия сейчас, документы позже</small></div></div>
     </section>
 
-    <section id="olympiads" class="page"><div class="section-hero"><div><small>01 · ОЛИМПИАДЫ</small><h2>Строим запас возможностей</h2><p>Ядро — филология; литература — стратегический второй слой. Отметки сохраняются на устройстве.</p></div><div class="roman">I · II · III</div></div>
+    <section id="olympiads" class="page"><div class="section-hero"><div><small>01 · ОЛИМПИАДЫ</small><h2>Олимпиады и результаты</h2><p>Ядро — филология; литература — стратегический второй слой. Отметки сохраняются на устройстве.</p></div></div>
       <div class="cards-grid olympiad-grid">
         <article class="info-card"><div class="card-top"><b>I</b><span>★★★★★</span></div><h3>СПбГУ · Филология</h3><p>Главная цель. Отборочный этап — осень, финал — зима.</p><label><input data-id="o1" type="checkbox"> Регистрация / отборочный этап</label><a href="https://olymp.spbu.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
         <article class="info-card"><div class="card-top"><b>II</b><span>★★★★★</span></div><h3>«Высшая проба» · Филология</h3><p>Окно первого тура — 25.09–11.10.2026 — завершилось. Проверь статус участия и публикацию результатов в личном кабинете; даты следующих этапов сверяй только с официальным расписанием профиля.</p><label><input data-id="o2" type="checkbox"> Отборочный этап</label><a href="https://olymp.hse.ru/" target="_blank" rel="noopener">Официальная страница ↗</a></article>
@@ -89,20 +101,25 @@
       <div class="strategy"><b>Ритм подготовки:</b> 40% СПбГУ · 30% «Высшая проба» · 20% ВСОШ литература · 10% остальные.</div>
     </section>
 
-    <section id="english" class="page"><div class="section-hero"><div><small>02 · АНГЛИЙСКИЙ</small><h2>Рабочий английский для жизни и университета</h2><p>Не отдельный режим IELTS или ЕГЭ. Сейчас — международный английский; экзаменационные форматы подключаются постепенно ближе к нужному сроку.</p></div><div class="circle-word">EN<br><span>∞</span></div></div>
-      <div class="english-grid"><article class="english-card"><span>01</span><h3>Адаптивная тренировка</h3><p>10 коротких заданий. Сейчас — адаптивный локальный прототип; история используется для подбора следующего материала.</p><button class="primary" data-english-action="train">Начать 10 заданий</button></article><article class="english-card"><span>02</span><h3>🎯 Тренировка по теме</h3><p>Целевая практика по отдельной теме. Результаты не меняют долгосрочный профиль.</p><button class="ghost" data-english-action="topic">Открыть</button></article><article class="english-card"><span>03</span><h3>Мой профиль</h3><p>CEFR и качественная картина без баллов, рейтингов и геймификации.</p><button class="ghost" data-english-action="profile">Посмотреть</button></article><article class="english-card"><span>04</span><h3>Словарь</h3><p>Личные слова и выражения с переводом, определением и сохранённым контекстом.</p><button class="ghost" data-english-action="dict">Открыть</button></article></div>
+    <section id="english" class="page"><div class="section-hero"><div><small>АНГЛИЙСКИЙ · ПРАКТИКА</small><h2>Рабочий английский для жизни и университета</h2><p>Не отдельный режим IELTS или ЕГЭ. Сейчас — международный английский; экзаменационные форматы подключаются постепенно ближе к нужному сроку.</p></div></div>
+      <div class="english-grid"><article class="english-card"><span>01</span><h3>Адаптивная тренировка</h3><p>10 коротких заданий. Сейчас — адаптивный локальный прототип; история используется для подбора следующего материала.</p><button class="primary" data-english-action="train">Начать 10 заданий</button></article><article class="english-card"><span>02</span><h3>Тренировка по теме</h3><p>Целевая практика по отдельной теме. Результаты не меняют долгосрочный профиль.</p><button class="ghost" data-english-action="topic">Открыть</button></article><article class="english-card"><span>03</span><h3>Мой профиль</h3><p>CEFR и качественная картина без баллов, рейтингов и геймификации.</p><button class="ghost" data-english-action="profile">Посмотреть</button></article><article class="english-card"><span>04</span><h3>Словарь</h3><p>Личные слова и выражения с переводом, определением и сохранённым контекстом.</p><button class="ghost" data-english-action="dict">Открыть</button></article></div>
+      <div class="diagnostic-entry panel"><div><small class="eyebrow">АНГЛИЙСКИЙ · ИЗМЕРЕНИЕ НАВЫКОВ</small><h3>Отдельная диагностика</h3><p>Четыре области письменного английского. Диагностические задания допускаются только после проверки преподавателем; результаты не являются общим уровнем CEFR.</p></div><button type="button" class="ghost-dark" data-english-action="diagnostic">Открыть диагностику</button></div>
+      <section class="diag-panel panel" id="diagnosticPanel" aria-label="Диагностика английского" hidden></section>
+      <div class="subroute"><div><b>Экзаменационный маршрут</b><p>Формат IELTS и его сроки — отдельный этап подготовки, не режим ежедневной практики.</p></div><button data-page="ielts" class="subroute-link" type="button">Открыть план IELTS →</button></div>
       <div class="english-session panel"><div id="englishTask"></div></div>
       <div class="resource-box"><b>Принцип:</b> языковая корректность проверяется по авторитетной английской норме; экзаменационные требования подключаются отдельно.</div>
     </section>
 
-    <section id="ielts" class="page"><div class="section-hero"><div><small>03 · IELTS</small><h2>Английский без рывков</h2><p>Цель — IELTS Academic 7.0+. Основная сдача ориентировочно в конце августа 2027, чтобы не пересекать пик олимпиад.</p></div><div class="circle-word">B2<br><span>→</span><br>C1</div></div>
+    <section id="ielts" class="page"><div class="section-hero"><div><small>АНГЛИЙСКИЙ / IELTS</small><h2>Английский без рывков</h2><p>Цель — IELTS Academic 7.0+. Основная сдача ориентировочно в конце августа 2027, чтобы не пересекать пик олимпиад.</p></div></div>
+      <nav class="section-tabs" aria-label="Разделы английского"><button data-page="english" type="button">Практика английского</button><button data-page="ielts" type="button" aria-current="page">Подготовка IELTS</button></nav>
       <div class="ielts-grid"><article class="phase"><span>СЕН 2026 — ЯНВ 2027</span><h3>Поддерживать уровень</h3><p>Олимпиадный сезон в приоритете. Английский остаётся в регулярной практике.</p><label><input data-id="i1" type="checkbox"> Английский 2–3 раза в неделю</label></article><article class="phase"><span>ЯНВ — ИЮН 2027</span><h3>Спокойно войти в IELTS</h3><p>Формат экзамена, Reading, Listening, Writing, Speaking; постепенная диагностика.</p><label><input data-id="i2" type="checkbox"> Начать системную подготовку</label></article><article class="phase"><span>ИЮЛЬ — АВГУСТ 2027</span><h3>Интенсив + экзамен</h3><p>Пробники, работа над слабыми секциями, IELTS Academic в конце августа.</p><label><input data-id="i3" type="checkbox"> Забронировать экзамен</label></article><article class="phase"><span>ОСЕНЬ 2027 — РЕТЕЙК</span><h3>Запасной план</h3><p>Если балл ниже цели — оставить окно для пересдачи.</p><label><input data-id="i4" type="checkbox"> Проверить результат и решение</label></article></div>
       <div class="resource-box"><b>Официально:</b> IELTS.org — требования, формат, подготовительные материалы и поиск тест-центров.<a href="https://ielts.org/" target="_blank" rel="noopener">Открыть IELTS.org ↗</a></div>
     </section>
 
-    <section id="fullplan" class="page"><div class="section-hero"><div><small>04 · ПОЛНЫЙ ПЛАН</small><h2>От сентября 2026 до поступления</h2><p>Большой маршрут с контрольными точками. Он не заменяет месячный план — он объясняет, зачем нужен каждый этап.</p></div><div class="roman">MMXXVI<br>→ MMXXIX</div></div>
+    <section id="fullplan" class="page"><div class="section-hero"><div><small>ПУТЬ · ДОЛГОСРОЧНО</small><h2>Маршрут к поступлению</h2><p>Большой маршрут с контрольными точками. Он не заменяет месячный план — он объясняет, зачем нужен каждый этап.</p></div></div>
+      <nav class="section-tabs" aria-label="Масштаб пути"><button data-page="fullplan" aria-current="page" type="button">Весь маршрут</button><button data-page="grade11" type="button">До конца школы</button><button data-page="ielts" type="button">Этап IELTS</button></nav>
       <div class="timeline">
-        <article><span>2026/27 · X класс</span><h3>Сформировать базу</h3><ul><li>СПбГУ и «Высшая проба» по филологии</li><li>ВСОШ литература / русский</li><li>Сильный школьный результат</li><li>Недельный ритм 7–8 часов самостоятельной работы</li><li>Сохранение семейных документов для будущего ISEEUP</li></ul><label><input data-id="p1" type="checkbox"> Этап в работе / закрыт</label></article>
+        <article><span>2026/27 · X класс</span><h3>Сформировать базу</h3><ul><li>СПбГУ и «Высшая проба» по филологии</li><li>ВСОШ литература / русский</li><li>Сильный школьный результат</li><li>Самостоятельная подготовка без недельной нормы: нагрузка определяется состоянием и доступным временем</li><li>Сохранение семейных документов для будущего ISEEUP</li></ul><label><input data-id="p1" type="checkbox"> Этап в работе / закрыт</label></article>
         <article><span>Лето 2027</span><h3>IELTS</h3><ul><li>Системная подготовка</li><li>IELTS Academic</li><li>Цель 7.0+</li><li>При необходимости — окно на пересдачу</li></ul><label><input data-id="p2" type="checkbox"> IELTS-этап выполнен</label></article>
         <article><span>2027/28 · XI класс</span><h3>ЕГЭ + финальный год</h3><ul><li>ЕГЭ и аттестат</li><li>Финалы олимпиад</li><li>Проверка актуальных правил СПбГУ и Sapienza</li><li>Подготовка документов</li></ul><label><input data-id="p3" type="checkbox"> 11 класс закрыт</label></article>
         <article><span>Лето 2028</span><h3>Поступление в СПбГУ</h3><ul><li>ЕГЭ</li><li>Подача документов</li><li>Зачисление</li><li>Выбор стратегии первого курса</li></ul><label><input data-id="p4" type="checkbox"> Поступление в СПбГУ закрыто</label></article>
@@ -111,13 +128,14 @@
       </div>
     </section>
 
-    <section id="grade11" class="page"><div class="section-hero"><div><small>05 · ДО КОНЦА 11 КЛАССА</small><h2>Учёба по годам</h2><p>Здесь только то, что реально нужно успеть до окончания школы. Латынь и древнегреческий остаются в школьной нагрузке.</p></div><div class="school-mark">X → XI</div></div>
+    <section id="grade11" class="page"><div class="section-hero"><div><small>ПУТЬ / X—XI КЛАССЫ</small><h2>Учёба по годам</h2><p>Здесь только то, что реально нужно успеть до окончания школы. Латынь и древнегреческий остаются в школьной нагрузке.</p></div></div>
+      <nav class="section-tabs" aria-label="Масштаб пути"><button data-page="fullplan" type="button">Весь маршрут</button><button data-page="grade11" aria-current="page" type="button">До конца школы</button><button data-page="ielts" type="button">Этап IELTS</button></nav>
       <div class="year-grid"><article><span>СЕН — ДЕК 2026</span><h3>10 класс · осень</h3><ul><li>Олимпиадный сезон</li><li>Настроить устойчивый режим</li><li>Не перегружать IELTS</li><li>Сохранять семейные документы</li></ul><label><input data-id="y1" type="checkbox"> Осенний блок выполнен</label></article><article><span>ЯНВ — ИЮН 2027</span><h3>10 класс · весна</h3><ul><li>Финалы олимпиад</li><li>Закрыть учебный год сильным аттестатом</li><li>Начать плавную IELTS-подготовку</li><li>Летом — интенсив IELTS</li></ul><label><input data-id="y2" type="checkbox"> 10 класс закрыт</label></article><article><span>СЕН — ДЕК 2027</span><h3>11 класс · осень</h3><ul><li>ЕГЭ в приоритете</li><li>Поддерживать олимпиады</li><li>Проверить требования вузов</li><li>Проверить паспортные / образовательные документы</li></ul><label><input data-id="y3" type="checkbox"> Осень 11 класса закрыта</label></article><article><span>ЯНВ — ИЮН 2028</span><h3>11 класс · финиш</h3><ul><li>ЕГЭ</li><li>Подача документов в российские вузы</li><li>Получить аттестат</li><li>Подготовить следующий этап</li></ul><label><input data-id="y4" type="checkbox"> 11 класс завершён</label></article></div>
       <div class="note-card"><b>Главный принцип.</b> В 10 классе строим запас возможностей. В 11 — не даём поступлению разрушить школьную базу. IELTS лучше закрыть до начала финального олимпийного / ЕГЭ-цикла.</div>
     </section>
 
 
-    <section id="data" class="page"><div class="section-hero"><div><small>ДАННЫЕ · БЕЗОПАСНОСТЬ</small><h2>Резервная копия и перенос данных</h2><p>Сохрани полную копию перед обновлением или перенеси свои данные в другой браузер. Файл остаётся у тебя и не отправляется на сервер.</p></div><div class="roman">↗</div></div>
+    <section id="data" class="page"><div class="section-hero"><div><small>НАСТРОЙКИ / ДАННЫЕ</small><h2>Резервная копия и перенос</h2><p>Сохрани полную копию перед обновлением или перенеси свои данные в другой браузер. Файл остаётся у тебя и не отправляется на сервер.</p></div></div>
       <div class="backup-panel panel"><div><small class="eyebrow">ПОЛНАЯ КОПИЯ</small><h3>Сохранить или восстановить Via Classica</h3><p>В копию входят задачи и отметки, архив ссылок, настройки планера, профиль английского, словарь и история тренировок. Перед восстановлением приложение сначала сохраняет текущие данные, а затем просит подтверждение.</p></div><div class="backup-actions"><button class="primary" id="exportFullBackup" type="button">Скачать полную копию (.json)</button><input id="importFullBackupFile" type="file" accept=".json,application/json" hidden><button class="ghost-dark" id="chooseFullBackup" type="button">Выбрать файл для восстановления</button></div>
         <div id="backupDropZone" class="backup-dropzone" tabindex="0" role="button" aria-label="Перетащить резервную копию сюда или выбрать файл"><span class="backup-drop-icon">↓</span><div><b>Загрузи резервную копию сюда</b><p>Перетащи JSON-файл в эту область или нажми «Выбрать файл для восстановления».</p><small>Поддерживаются полные копии Via Classica v14.4, v14.3 и совместимые копии v14.1 / pre-v14.</small></div></div>
         <div id="fullBackupStatus" class="schedule-status" aria-live="polite"></div>
@@ -126,15 +144,15 @@
       <div class="note-card"><b>Важно.</b> После скачивания проверь папку «Загрузки». Не загружай резервную копию в публичный репозиторий: в ней могут быть личные задачи и учебная история.</div>
     </section>
 
-    <section id="links" class="page"><div class="section-hero"><div><small>06 · АРХИВ ССЫЛОК</small><h2>Всё нужное — в одном месте</h2><p>Добавляй свои ссылки, выбирай категорию и отмечай ⭐ избранные. Данные сохраняются в браузере.</p></div><div class="link-symbol">↗</div></div>
-      <div class="link-toolbar"><button class="primary" id="addLinkBtn">+ Добавить ссылку</button><select id="linkFilter"><option value="all">Все категории</option><option value="Вузы">Вузы</option><option value="Олимпиады">Олимпиады</option><option value="IELTS">IELTS</option><option value="Подготовка">Подготовка</option><option value="Документы">Документы</option><option value="Италия">Италия</option><option value="Мои ссылки">Мои ссылки</option><option value="favorite">★ Избранное</option></select></div>
+    <section id="links" class="page"><div class="section-hero"><div><small>АРХИВ / ИСТОЧНИКИ</small><h2>Всё нужное — в одном месте</h2><p>Добавляй свои ссылки, выбирай категорию и отмечай избранные. Данные сохраняются в браузере.</p></div></div>
+      <div class="link-toolbar"><button class="primary" id="addLinkBtn">+ Добавить ссылку</button><select id="linkFilter" aria-label="Фильтр ссылок"><option value="all">Все категории</option><option value="Вузы">Вузы</option><option value="Олимпиады">Олимпиады</option><option value="IELTS">IELTS</option><option value="Подготовка">Подготовка</option><option value="Документы">Документы</option><option value="Италия">Италия</option><option value="Мои ссылки">Мои ссылки</option><option value="favorite">★ Избранное</option></select></div>
       <div id="linksGrid" class="links-grid"></div>
     </section>
   </main>
 </div>
 
-<div class="modal" id="linkModal" aria-hidden="true"><div class="modal-card"><button class="modal-close" id="closeModal">×</button><small>НОВАЯ ССЫЛКА</small><h2>Добавить в архив</h2><form id="linkForm"><label>Название<input id="linkName" required placeholder="Например, Sapienza — Classics"></label><label>Ссылка<input id="linkUrl" type="url" required placeholder="https://…"></label><label>Категория<select id="linkCategory"><option>Вузы</option><option>Олимпиады</option><option>IELTS</option><option>Подготовка</option><option>Документы</option><option>Италия</option><option>Мои ссылки</option></select></label><label class="checkline"><input id="linkFav" type="checkbox"> Добавить в избранное</label><div class="modal-actions"><button type="button" class="ghost" id="cancelLink">Отмена</button><button class="primary" type="submit">Сохранить</button></div></form></div></div>
+<div class="modal" id="linkModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle"><div class="modal-card"><button class="modal-close" id="closeModal" type="button" aria-label="Закрыть окно">×</button><small>НОВАЯ ССЫЛКА</small><h2 id="linkModalTitle">Добавить в архив</h2><form id="linkForm"><label>Название<input id="linkName" required placeholder="Например, Sapienza — Classics"></label><label>Ссылка<input id="linkUrl" type="url" required placeholder="https://…"></label><label>Категория<select id="linkCategory"><option>Вузы</option><option>Олимпиады</option><option>IELTS</option><option>Подготовка</option><option>Документы</option><option>Италия</option><option>Мои ссылки</option></select></label><label class="checkline"><input id="linkFav" type="checkbox"> Добавить в избранное</label><div class="modal-actions"><button type="button" class="ghost" id="cancelLink">Отмена</button><button class="primary" type="submit">Сохранить</button></div></form></div></div>
 
-<script src="app.js?v=14.6"></script><script src="planner.js?v=14.6"></script><script src="english.js?v=14.6"></script>
+<script src="storage-guard.js?v=15.0-p4"></script><script src="app.js?v=15.2-r2"></script><script src="planner.js?v=15.1-d1"></script><script src="english.js?v=15.2-r2"></script><script src="calendar.js?v=15.0-p4"></script><script src="design.js?v=15.0-p4"></script><script src="diagnostics.js?v=15.2-draft"></script>
 </body>
 </html>

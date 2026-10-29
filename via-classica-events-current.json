@@ -1,0 +1,72 @@
+{
+  "schema": "via-classica-events-v1",
+  "sourceVersion": 1,
+  "checkedAt": "2026-10-28",
+  "policy": "Only verified official organizer pages or official documents count as confirmed. Draft schedule is explicitly unconfirmed; do not fill missing dates by guesswork.",
+  "events": [
+    {
+      "id": "lomonosov-lit-2026-selection-start",
+      "olympiad": "«Ломоносов» · литература",
+      "phase": "Отборочный этап",
+      "type": "round",
+      "date": "2026-10-30",
+      "time": "12:00",
+      "timezone": "Europe/Moscow",
+      "status": "published",
+      "verification": "verified",
+      "sourceUrl": "https://olymp.msu.ru/rus/page/main/29/page/grafik-provedeniya-otborochnogo-ehtapa",
+      "sourceType": "official_site",
+      "checkedAt": "2026-10-28",
+      "comment": "Начало отборочного этапа по литературе; московское время.",
+      "history": []
+    },
+    {
+      "id": "lomonosov-lit-2026-selection-end",
+      "olympiad": "«Ломоносов» · литература",
+      "phase": "Отборочный этап",
+      "type": "round",
+      "date": "2026-11-06",
+      "time": "12:00",
+      "timezone": "Europe/Moscow",
+      "status": "published",
+      "verification": "verified",
+      "sourceUrl": "https://olymp.msu.ru/rus/page/main/29/page/grafik-provedeniya-otborochnogo-ehtapa",
+      "sourceType": "official_site",
+      "checkedAt": "2026-10-28",
+      "comment": "Окончание отборочного этапа по литературе; московское время.",
+      "history": []
+    },
+    {
+      "id": "lomonosov-lit-2026-registration-end",
+      "olympiad": "«Ломоносов» · литература",
+      "phase": "Регистрация",
+      "type": "registration",
+      "date": "2026-11-06",
+      "time": "12:00",
+      "timezone": "Europe/Moscow",
+      "status": "published",
+      "verification": "verified",
+      "sourceUrl": "https://olymp.msu.ru/rus/event/request/11013/form?role_section_switcher%5Bsection%5D=43457",
+      "sourceType": "official_site",
+      "checkedAt": "2026-10-28",
+      "comment": "Регистрация до 12:00 6 ноября, согласно странице олимпиады.",
+      "history": []
+    },
+    {
+      "id": "hse-philology-2026-stage2-draft",
+      "olympiad": "«Высшая проба» · филология",
+      "phase": "Второй тур отборочного этапа",
+      "type": "round",
+      "date": "2026-11-21",
+      "time": "10:30",
+      "timezone": "Europe/Moscow",
+      "status": "unknown",
+      "verification": "draft",
+      "sourceUrl": "https://olymp.hse.ru/mmo/timetable1",
+      "sourceType": "official_site",
+      "checkedAt": "2026-10-28",
+      "comment": "Только проект расписания. До утверждения не считать дату подтверждённой и не показывать среди официальных дедлайнов.",
+      "history": []
+    }
+  ]
+}
